@@ -19,33 +19,6 @@ parameters:
             - 'storage'
             - 'vendor'
 
-    # Laravel specific configuration
-    laravel:
-        providers:
-            - Laravel\Framework\Providers\ArtisanServiceProvider
-            - Laravel\Framework\Providers\AuthServiceProvider
-            - Laravel\Framework\Providers\BroadcastServiceProvider
-            - Laravel\Framework\Providers\BusServiceProvider
-            - Laravel\Framework\Providers\CacheServiceProvider
-            - Laravel\Framework\Providers\ConsoleSupportServiceProvider
-            - Laravel\Framework\Providers\CookieServiceProvider
-            - Laravel\Framework\Providers\DatabaseServiceProvider
-            - Laravel\Framework\Providers\EncryptionServiceProvider
-            - Laravel\Framework\Providers\FilesystemServiceProvider
-            - Laravel\Framework\Providers\FoundationServiceProvider
-            - Laravel\Framework\Providers\HashServiceProvider
-            - Laravel\Framework\Providers\MailServiceProvider
-            - Laravel\Framework\Providers\NotificationServiceProvider
-            - Laravel\Framework\Providers\PaginationServiceProvider
-            - Laravel\Framework\Providers\PipelineServiceProvider
-            - Laravel\Framework\Providers\QueueServiceProvider
-            - Laravel\Framework\Providers\RedisServiceProvider
-            - Laravel\Framework\Providers\RouteServiceProvider
-            - Laravel\Framework\Providers\SessionServiceProvider
-            - Laravel\Framework\Providers\TranslationServiceProvider
-            - Laravel\Framework\Providers\ValidationServiceProvider
-            - Laravel\Framework\Providers\ViewServiceProvider
-
     # Ignore common Laravel patterns
     ignoreErrors:
         - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.*#'
@@ -62,3 +35,13 @@ parameters:
     universalObjectCratesClasses:
         - Illuminate\Http\Request
         - Illuminate\Support\Collection
+        - Illuminate\Database\Eloquent\Collection
+        - Illuminate\Support\LazyCollection
+        - Illuminate\Support\Enumerable
+        - Illuminate\Support\Arr
+        - Illuminate\Support\Str
+        - Illuminate\Support\Carbon
+        - Illuminate\Support\Facades\DB
+        - Illuminate\Support\Facades\Schema
+        - Illuminate\Support\Facades\Route
+        - Illuminate\Support\Facades\Artisan
