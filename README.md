@@ -156,25 +156,83 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-## Database Schema
+## Architecture & Models
 
-The CMS features a comprehensive database schema designed for scalability and performance:
+The CMS features a comprehensive Eloquent model architecture designed for scalability and performance:
 
-### Core Tables
+### 🏗️ **Foundational Traits**
+- **`HasUuid`** - UUID primary keys with route model binding
+- **`MultiTenant`** - Automatic space-based scoping and tenant isolation
+- **`Sluggable`** - URL-friendly slug generation with uniqueness validation
+- **`Cacheable`** - Model caching with automatic cache invalidation
+
+### 📊 **Core Models**
+
+#### **Space Model** - Multi-tenant isolation
+```php
+// Complete tenant management with settings and environments
+$space = Space::findByUuid('space-uuid');
+$space->getStoriesCount(); // Cached metrics
+$space->hasReachedStoryLimit(); // Plan-based limits
+$space->supportsLanguage('en'); // Multi-language support
+```
+
+#### **User Model** - Enhanced authentication
+```php
+// Multi-space membership with role-based permissions
+$user->belongsToSpace($space); // Space membership check
+$user->getRoleInSpace($space); // Space-specific role
+$user->hasPermissionInSpace($space, 'story.create'); // Permission check
+```
+
+#### **Story Model** - Storyblok-style content
+```php
+// Hierarchical content with component validation
+$story->isPublished(); // Publishing workflow
+$story->getComponentsByType('hero_section'); // Component extraction
+$story->generateBreadcrumbs(); // Navigation helpers
+$story->getSeoMeta(); // SEO optimization
+```
+
+#### **Component Model** - Block definitions
+```php
+// Field schema validation with 20+ field types
+$component->validateData($data); // Real-time validation
+$component->getRequiredFields(); // Schema introspection
+$component->canBeUsedBy($user); // Access control
+```
+
+#### **Role Model** - Permission management
+```php
+// Hierarchical role system with comprehensive permissions
+$role->hasPermission('story.publish'); // Permission check
+$role->setPermissions(['story.view', 'story.edit']); // Bulk assignment
+$role->canManageRole($otherRole); // Role hierarchy
+```
+
+### 🔧 **Advanced Features**
+- **PHP 8.3+ Strict Typing**: Modern PHP with typed properties and match expressions
+- **JSON Schema Validation**: Component schemas with field validation
+- **Automatic Cache Management**: Model-level caching with intelligent invalidation
+- **Multi-Language Support**: Built-in localization with translation groups
+- **Publishing Workflow**: Draft → Review → Published → Scheduled states
+- **Hierarchical Content**: Nested stories with automatic path generation
+
+### 📁 **Database Tables**
 - **`spaces`** - Multi-tenant isolation with environment configurations
-- **`users`** & **`roles`** - Advanced user management with role-based permissions
+- **`users`** & **`roles`** - Advanced user management with role-based permissions  
 - **`space_user`** - Pivot table linking users to spaces with custom permissions
 - **`components`** - Storyblok-style content block definitions with JSON schemas
 - **`stories`** - Hierarchical content pages with multi-language support
 - **`assets`** - Advanced file management with processing metadata
 - **`datasources`** & **`datasource_entries`** - External data integration
 
-### Key Features
+### 🚀 **Performance Optimizations**
 - **PostgreSQL 16+ Features**: JSONB columns with GIN indexes for optimal JSON querying
-- **Multi-Tenant Architecture**: Complete data isolation with space-based scoping
-- **Soft Deletes**: Comprehensive audit trails for important entities
+- **Redis Caching**: Model-level caching with configurable TTL
+- **Query Scoping**: Automatic multi-tenant query optimization
+- **Soft Deletes**: Comprehensive audit trails without data loss
 - **UUID Exposure**: Public API uses UUIDs instead of internal IDs
-- **Rich Indexing**: Performance-optimized indexes for common query patterns
 
 For detailed schema documentation and JSON examples, see [`docs/json-schemas.md`](docs/json-schemas.md).
 
@@ -275,16 +333,31 @@ X-RateLimit-Remaining: 59
 ```
 headless-cms/
 ├── app/
+│   ├── Casts/                   # Custom Eloquent casts
+│   │   ├── Json.php             # Enhanced JSON casting with validation
+│   │   └── ComponentSchema.php  # Component schema validation cast
 │   ├── Http/
-│   │   ├── Controllers/         # API controllers
+│   │   ├── Controllers/         # API controllers (to be implemented)
 │   │   ├── Middleware/          # Custom middleware (rate limiting, etc.)
-│   │   └── Resources/           # API response resources
-│   ├── Models/                  # Eloquent models with relationships
-│   ├── Repositories/            # Data access layer
-│   ├── Services/                # Business logic (JWT, content management)
-│   └── Traits/                  # Reusable functionality (API responses)
+│   │   └── Resources/           # API response resources (to be implemented)
+│   ├── Models/                  # Comprehensive Eloquent models
+│   │   ├── Asset.php            # File management model
+│   │   ├── Component.php        # Content block definitions
+│   │   ├── Datasource.php       # External data integration
+│   │   ├── DatasourceEntry.php  # External data entries
+│   │   ├── Role.php             # Permission management
+│   │   ├── Space.php            # Multi-tenant isolation
+│   │   ├── Story.php            # Hierarchical content
+│   │   └── User.php             # Enhanced authentication
+│   ├── Traits/                  # Reusable model functionality
+│   │   ├── HasUuid.php          # UUID primary keys
+│   │   ├── MultiTenant.php      # Space-based scoping
+│   │   ├── Sluggable.php        # URL-friendly slugs
+│   │   └── Cacheable.php        # Model caching
+│   ├── Repositories/            # Data access layer (to be implemented)
+│   └── Services/                # Business logic (to be implemented)
 ├── database/
-│   ├── migrations/              # Database schema migrations
+│   ├── migrations/              # Database schema with GIN indexes
 │   ├── seeders/                 # Database seeders (roles, sample data)
 │   └── factories/               # Model factories for testing
 ├── docker/                      # Docker configuration
@@ -294,8 +367,8 @@ headless-cms/
 ├── docs/                        # Documentation
 │   └── json-schemas.md          # JSON schema examples
 ├── routes/
-│   └── api.php                  # API routes
-└── tests/                       # Test suite
+│   └── api.php                  # API routes (basic structure)
+└── tests/                       # Test suite (to be implemented)
 ```
 
 ## Configuration Examples
@@ -441,22 +514,30 @@ services:
 ## Roadmap
 
 ### v1.0 (Current)
-- ✅ Multi-tenant architecture
-- ✅ Storyblok-style component system
-- ✅ Advanced asset management
-- ✅ External data source integration
+- ✅ Multi-tenant architecture with space-based isolation
+- ✅ Comprehensive Eloquent models with PHP 8.3+ features
+- ✅ Storyblok-style component system with schema validation
+- ✅ Advanced role-based permission system
+- ✅ Multi-language content support
+- ✅ Publishing workflow (draft → review → published → scheduled)
+- ✅ Model caching with automatic invalidation
+- ✅ Docker development environment
+- ✅ PostgreSQL with JSONB and GIN indexes
 
 ### v1.1 (Next)
-- 🔄 GraphQL API support
-- 🔄 Real-time collaboration
-- 🔄 Advanced workflow management
-- 🔄 Plugin system
+- 🔄 API controllers and resource transformers
+- 🔄 JWT authentication implementation
+- 🔄 Asset management with CDN support
+- 🔄 External data source integration
+- 🔄 Rate limiting and API protection
 
 ### v1.2 (Future)
-- 📋 Visual content editor
+- 📋 GraphQL API support
+- 📋 Real-time collaboration features
+- 📋 Visual content editor interface
 - 📋 Advanced analytics dashboard
 - 📋 AI-powered content suggestions
-- 📋 Advanced caching strategies
+- 📋 Plugin system architecture
 
 ## License
 

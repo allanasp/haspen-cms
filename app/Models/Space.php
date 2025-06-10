@@ -4,25 +4,53 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\Json;
+use App\Traits\Cacheable;
+use App\Traits\HasUuid;
+use App\Traits\Sluggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 
 /**
- * Space Model - Multi-tenant isolation
- * 
- * Represents a tenant space in the headless CMS system.
- * Each space contains isolated content, users, and configuration.
+ * Space Model
+ *
+ * Represents a tenant in the multi-tenant headless CMS.
+ * Each space provides complete data isolation and custom configuration.
+ *
+ * @property int $id
+ * @property string $uuid
+ * @property string $name
+ * @property string $slug
+ * @property string|null $domain
+ * @property string|null $description
+ * @property array|null $settings
+ * @property array $environments
+ * @property string $default_language
+ * @property array $languages
+ * @property string $plan
+ * @property int|null $story_limit
+ * @property int|null $asset_limit
+ * @property int|null $api_limit
+ * @property string $status
+ * @property \Carbon\Carbon|null $trial_ends_at
+ * @property \Carbon\Carbon|null $suspended_at
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ * @property \Carbon\Carbon|null $deleted_at
  */
 class Space extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, HasUuid, Sluggable, SoftDeletes, Cacheable;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<string>
+     */
     protected $fillable = [
-        'uuid',
         'name',
         'slug',
         'domain',
@@ -40,95 +68,65 @@ class Space extends Model
         'suspended_at',
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
     protected $casts = [
-        'settings' => 'array',
-        'environments' => 'array',
-        'languages' => 'array',
+        'settings' => Json::class,
+        'environments' => Json::class,
+        'languages' => Json::class,
         'trial_ends_at' => 'datetime',
         'suspended_at' => 'datetime',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<string>
+     */
     protected $hidden = [
         'id',
     ];
 
     /**
-     * Boot the model
+     * Sluggable configuration
      */
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (Space $space) {
-            if (empty($space->uuid)) {
-                $space->uuid = (string) Str::uuid();
-            }
-            if (empty($space->slug)) {
-                $space->slug = Str::slug($space->name);
-            }
-        });
-    }
+    protected string $slugSourceField = 'name';
+    protected bool $autoUpdateSlug = false;
 
     /**
-     * Get the route key for the model
+     * Cache TTL in seconds (24 hours)
      */
-    public function getRouteKeyName(): string
-    {
-        return 'uuid';
-    }
+    protected int $cacheTtl = 86400;
 
     /**
-     * Scope query to active spaces
+     * Available space statuses
      */
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
-    }
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_SUSPENDED = 'suspended';
+    public const STATUS_DELETED = 'deleted';
 
     /**
-     * Scope query to spaces by plan
+     * Available plans
      */
-    public function scopeByPlan($query, string $plan)
-    {
-        return $query->where('plan', $plan);
-    }
+    public const PLAN_FREE = 'free';
+    public const PLAN_PRO = 'pro';
+    public const PLAN_ENTERPRISE = 'enterprise';
 
     /**
-     * Check if space is active
-     */
-    public function isActive(): bool
-    {
-        return $this->status === 'active';
-    }
-
-    /**
-     * Check if space is suspended
-     */
-    public function isSuspended(): bool
-    {
-        return $this->status === 'suspended';
-    }
-
-    /**
-     * Check if space trial has expired
-     */
-    public function isTrialExpired(): bool
-    {
-        return $this->trial_ends_at && $this->trial_ends_at->isPast();
-    }
-
-    /**
-     * Get users belonging to this space
+     * Get all users associated with this space.
      */
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class)
-            ->withPivot(['role_id', 'status', 'joined_at', 'last_accessed_at', 'invited_by', 'custom_permissions'])
+        return $this->belongsToMany(User::class, 'space_user')
+            ->withPivot(['role_id', 'custom_permissions', 'last_accessed_at'])
             ->withTimestamps();
     }
 
     /**
-     * Get stories in this space
+     * Get all stories in this space.
      */
     public function stories(): HasMany
     {
@@ -136,15 +134,7 @@ class Space extends Model
     }
 
     /**
-     * Get published stories in this space
-     */
-    public function publishedStories(): HasMany
-    {
-        return $this->hasMany(Story::class)->where('is_published', true);
-    }
-
-    /**
-     * Get components in this space
+     * Get all components in this space.
      */
     public function components(): HasMany
     {
@@ -152,15 +142,7 @@ class Space extends Model
     }
 
     /**
-     * Get active components in this space
-     */
-    public function activeComponents(): HasMany
-    {
-        return $this->hasMany(Component::class)->where('status', 'active');
-    }
-
-    /**
-     * Get assets in this space
+     * Get all assets in this space.
      */
     public function assets(): HasMany
     {
@@ -168,7 +150,7 @@ class Space extends Model
     }
 
     /**
-     * Get datasources in this space
+     * Get all datasources in this space.
      */
     public function datasources(): HasMany
     {
@@ -176,47 +158,99 @@ class Space extends Model
     }
 
     /**
-     * Check if language is supported
+     * Scope to active spaces only.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    /**
+     * Scope to spaces by plan.
+     */
+    public function scopePlan($query, string $plan)
+    {
+        return $query->where('plan', $plan);
+    }
+
+    /**
+     * Scope to spaces by domain.
+     */
+    public function scopeDomain($query, string $domain)
+    {
+        return $query->where('domain', $domain);
+    }
+
+    /**
+     * Check if the space is active.
+     */
+    public function isActive(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    /**
+     * Check if the space is suspended.
+     */
+    public function isSuspended(): bool
+    {
+        return $this->status === self::STATUS_SUSPENDED;
+    }
+
+    /**
+     * Check if the space is on trial.
+     */
+    public function isOnTrial(): bool
+    {
+        return $this->trial_ends_at && $this->trial_ends_at->isFuture();
+    }
+
+    /**
+     * Check if the trial has expired.
+     */
+    public function isTrialExpired(): bool
+    {
+        return $this->trial_ends_at && $this->trial_ends_at->isPast();
+    }
+
+    /**
+     * Get space configuration for a specific environment.
+     */
+    public function getEnvironmentConfig(string $environment = 'production'): array
+    {
+        return $this->environments[$environment] ?? [];
+    }
+
+    /**
+     * Check if a language is supported.
      */
     public function supportsLanguage(string $language): bool
     {
-        return in_array($language, $this->languages ?? ['en']);
+        return in_array($language, $this->languages);
     }
 
     /**
-     * Get space settings value
+     * Get the number of stories in this space.
      */
-    public function getSetting(string $key, mixed $default = null): mixed
+    public function getStoriesCount(): int
     {
-        return data_get($this->settings, $key, $default);
+        return $this->getCached('stories_count', function () {
+            return $this->stories()->count();
+        }, 3600);
     }
 
     /**
-     * Set space settings value
+     * Get the number of assets in this space.
      */
-    public function setSetting(string $key, mixed $value): void
+    public function getAssetsCount(): int
     {
-        $settings = $this->settings ?? [];
-        data_set($settings, $key, $value);
-        $this->settings = $settings;
+        return $this->getCached('assets_count', function () {
+            return $this->assets()->count();
+        }, 3600);
     }
 
     /**
-     * Get environment-specific configuration
-     */
-    public function getEnvironmentConfig(string $environment, string $key = null, mixed $default = null): mixed
-    {
-        $config = data_get($this->environments, $environment, []);
-        
-        if ($key === null) {
-            return $config;
-        }
-        
-        return data_get($config, $key, $default);
-    }
-
-    /**
-     * Check if space has reached story limit
+     * Check if space has reached story limit.
      */
     public function hasReachedStoryLimit(): bool
     {
@@ -224,11 +258,11 @@ class Space extends Model
             return false;
         }
 
-        return $this->stories()->count() >= $this->story_limit;
+        return $this->getStoriesCount() >= $this->story_limit;
     }
 
     /**
-     * Check if space has reached asset limit
+     * Check if space has reached asset limit.
      */
     public function hasReachedAssetLimit(): bool
     {
@@ -236,7 +270,42 @@ class Space extends Model
             return false;
         }
 
-        $totalSize = $this->assets()->sum('file_size');
-        return $totalSize >= ($this->asset_limit * 1024 * 1024); // Convert MB to bytes
+        $totalSize = $this->getCached('assets_total_size', function () {
+            return $this->assets()->sum('file_size') / 1024 / 1024; // Convert to MB
+        }, 3600);
+
+        return $totalSize >= $this->asset_limit;
+    }
+
+    /**
+     * Suspend the space.
+     */
+    public function suspend(): bool
+    {
+        return $this->update([
+            'status' => self::STATUS_SUSPENDED,
+            'suspended_at' => now(),
+        ]);
+    }
+
+    /**
+     * Reactivate the space.
+     */
+    public function reactivate(): bool
+    {
+        return $this->update([
+            'status' => self::STATUS_ACTIVE,
+            'suspended_at' => null,
+        ]);
+    }
+
+    /**
+     * Clear model-specific cache.
+     */
+    protected function clearModelSpecificCache(): void
+    {
+        $this->forgetCache('stories_count');
+        $this->forgetCache('assets_count');
+        $this->forgetCache('assets_total_size');
     }
 }
