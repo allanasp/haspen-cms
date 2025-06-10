@@ -13,10 +13,10 @@ parameters:
     # Exclude certain paths
     excludePaths:
         analyseAndScan:
-            - app/Http/Middleware/Authenticate.php
-            - bootstrap
-            - storage
-            - vendor
+            - 'app/Http/Middleware/*'
+            - 'bootstrap'
+            - 'storage'
+            - 'vendor'
 
     # Laravel specific configuration
     laravel:
