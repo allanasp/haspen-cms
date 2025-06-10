@@ -55,7 +55,6 @@ parameters:
     # Check function calls with too many arguments
     checkTooWideReturnTypesInProtectedAndPublicMethods: true
     checkUninitializedProperties: true
-    checkMissingIterableValueType: false
     reportUnmatchedIgnoredErrors: false
 
     # Additional rules
