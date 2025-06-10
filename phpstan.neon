@@ -9,14 +9,15 @@ parameters:
         - config
         - database
         - routes
-    
+
     # Exclude certain paths
     excludePaths:
-        - app/Http/Middleware/Authenticate.php
-        - bootstrap
-        - storage
-        - vendor
-    
+        analyseAndScan:
+            - app/Http/Middleware/Authenticate.php
+            - bootstrap
+            - storage
+            - vendor
+
     # Laravel specific configuration
     laravel:
         providers:
@@ -43,20 +44,20 @@ parameters:
             - Laravel\Framework\Providers\TranslationServiceProvider
             - Laravel\Framework\Providers\ValidationServiceProvider
             - Laravel\Framework\Providers\ViewServiceProvider
-    
+
     # Ignore common Laravel patterns
     ignoreErrors:
         - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.*#'
         - '#Call to an undefined method Illuminate\\Http\\Request::validate\(\)#'
         - '#Access to an undefined property App\\Models\\.*::\$.*#'
         - '#Method App\\Http\\Controllers\\.*Controller::.*\(\) should return .*but returns.*#'
-    
+
     # Check function calls with too many arguments
     checkTooWideReturnTypesInProtectedAndPublicMethods: true
     checkUninitializedProperties: true
     checkMissingIterableValueType: false
     reportUnmatchedIgnoredErrors: false
-    
+
     # Additional rules
     universalObjectCratesClasses:
         - Illuminate\Http\Request
