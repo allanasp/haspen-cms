@@ -29,26 +29,27 @@ return $config
     ->setRules([
         // PSR-12 base rules
         '@PSR12' => true,
-        
+        'blank_lines_before_namespace' => false,
+
         // Array notation
         'array_syntax' => ['syntax' => 'short'],
         'array_indentation' => true,
         'trim_array_spaces' => true,
         'no_whitespace_before_comma_in_array' => true,
         'whitespace_after_comma_in_array' => true,
-        
+
         // Binary operators
         'binary_operator_spaces' => [
             'default' => 'single_space',
             'operators' => ['=>' => null]
         ],
         'concat_space' => ['spacing' => 'one'],
-        
+
         // Casts
         'cast_spaces' => ['space' => 'single'],
         'lowercase_cast' => true,
         'short_scalar_cast' => true,
-        
+
         // Classes and functions
         'class_attributes_separation' => [
             'elements' => [
@@ -62,17 +63,17 @@ return $config
         'no_useless_return' => true,
         'return_type_declaration' => true,
         'visibility_required' => true,
-        
+
         // Comments
         'single_line_comment_style' => ['comment_types' => ['hash']],
         'multiline_comment_opening_closing' => true,
-        
+
         // Control structures
         'no_superfluous_elseif' => true,
         'no_useless_else' => true,
         'simplified_if_return' => true,
         'yoda_style' => false,
-        
+
         // Imports
         'no_unused_imports' => true,
         'ordered_imports' => [
@@ -85,18 +86,18 @@ return $config
             'import_constants' => false,
             'import_functions' => false,
         ],
-        
+
         // Language constructs
         'declare_strict_types' => true,
         'native_function_invocation' => [
             'include' => ['@compiler_optimized'],
             'scope' => 'namespaced'
         ],
-        
+
         // Namespaces
         'no_leading_namespace_whitespace' => true,
         'single_blank_line_before_namespace' => true,
-        
+
         // PHPDoc
         'phpdoc_align' => ['align' => 'left'],
         'phpdoc_annotation_without_dot' => true,
@@ -113,17 +114,17 @@ return $config
         'phpdoc_trim' => true,
         'phpdoc_types' => true,
         'phpdoc_var_without_name' => true,
-        
+
         // Semicolons
         'no_empty_statement' => true,
         'no_singleline_whitespace_before_semicolons' => true,
         'semicolon_after_instruction' => true,
         'space_after_semicolon' => true,
-        
+
         // Strings
         'single_quote' => true,
-        'escape_implicit_backslashes' => true,
-        
+        'string_implicit_backslashes' => true,
+
         // Whitespace
         'blank_line_after_namespace' => true,
         'blank_line_after_opening_tag' => true,
@@ -154,7 +155,7 @@ return $config
         'no_whitespace_in_blank_line' => true,
         'object_operator_without_whitespace' => true,
         'single_blank_line_at_eof' => true,
-        
+
         // Laravel specific
         'method_argument_space' => [
             'on_multiline' => 'ensure_fully_multiline',

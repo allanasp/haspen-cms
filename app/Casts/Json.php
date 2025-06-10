@@ -6,17 +6,16 @@ namespace App\Casts;
 
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
-use InvalidArgumentException;
 
 /**
- * Custom JSON cast with validation support
+ * Custom JSON cast with validation support.
  */
 class Json implements CastsAttributes
 {
     /**
      * Cast the given value for storage.
      *
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     public function get(Model $model, string $key, mixed $value, array $attributes): mixed
     {
@@ -27,7 +26,7 @@ class Json implements CastsAttributes
         $decoded = json_decode($value, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new InvalidArgumentException("Invalid JSON in {$key}: " . json_last_error_msg());
+            throw new \InvalidArgumentException("Invalid JSON in {$key}: " . json_last_error_msg());
         }
 
         return $decoded;
@@ -36,7 +35,7 @@ class Json implements CastsAttributes
     /**
      * Prepare the given value for storage.
      *
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     public function set(Model $model, string $key, mixed $value, array $attributes): mixed
     {
@@ -47,7 +46,7 @@ class Json implements CastsAttributes
         $encoded = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new InvalidArgumentException("Cannot encode JSON for {$key}: " . json_last_error_msg());
+            throw new \InvalidArgumentException("Cannot encode JSON for {$key}: " . json_last_error_msg());
         }
 
         return $encoded;

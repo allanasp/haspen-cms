@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Space Model
+ * Space Model.
  *
  * Represents a tenant in the multi-tenant headless CMS.
  * Each space provides complete data isolation and custom configuration.
@@ -43,7 +43,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Space extends Model
 {
-    use HasFactory, HasUuid, Sluggable, SoftDeletes, Cacheable;
+    use HasFactory;
+    use HasUuid;
+    use Sluggable;
+    use SoftDeletes;
+    use Cacheable;
 
     /**
      * The attributes that are mass assignable.
@@ -91,25 +95,26 @@ class Space extends Model
     ];
 
     /**
-     * Sluggable configuration
+     * Sluggable configuration.
      */
     protected string $slugSourceField = 'name';
+
     protected bool $autoUpdateSlug = false;
 
     /**
-     * Cache TTL in seconds (24 hours)
+     * Cache TTL in seconds (24 hours).
      */
     protected int $cacheTtl = 86400;
 
     /**
-     * Available space statuses
+     * Available space statuses.
      */
     public const STATUS_ACTIVE = 'active';
     public const STATUS_SUSPENDED = 'suspended';
     public const STATUS_DELETED = 'deleted';
 
     /**
-     * Available plans
+     * Available plans.
      */
     public const PLAN_FREE = 'free';
     public const PLAN_PRO = 'pro';
@@ -226,7 +231,7 @@ class Space extends Model
      */
     public function supportsLanguage(string $language): bool
     {
-        return in_array($language, $this->languages);
+        return \in_array($language, $this->languages);
     }
 
     /**

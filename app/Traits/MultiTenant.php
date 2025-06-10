@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Trait MultiTenant
+ * Trait MultiTenant.
  *
  * Provides multi-tenant functionality by automatically scoping queries to the current space.
  * Ensures data isolation between different tenants (spaces).
@@ -25,7 +25,7 @@ trait MultiTenant
         // Automatically scope queries to current space if one is set
         static::addGlobalScope('space', function (Builder $builder): void {
             $currentSpace = app('current.space');
-            
+
             if ($currentSpace instanceof Space) {
                 $builder->where('space_id', $currentSpace->id);
             }
@@ -35,7 +35,7 @@ trait MultiTenant
         static::creating(function (Model $model): void {
             if (empty($model->space_id)) {
                 $currentSpace = app('current.space');
-                
+
                 if ($currentSpace instanceof Space) {
                     $model->space_id = $currentSpace->id;
                 }
@@ -54,21 +54,23 @@ trait MultiTenant
     /**
      * Scope a query to a specific space.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  Space|int  $space
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param Space|int $space
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeForSpace($query, Space|int $space)
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
-        
+
         return $query->where('space_id', $spaceId);
     }
 
     /**
      * Scope a query without the space constraint.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeWithoutSpaceScope($query)
@@ -79,13 +81,14 @@ trait MultiTenant
     /**
      * Check if the model belongs to the given space.
      *
-     * @param  Space|int  $space
+     * @param Space|int $space
+     *
      * @return bool
      */
     public function belongsToSpace(Space|int $space): bool
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
-        
+
         return $this->space_id === $spaceId;
     }
 
@@ -97,11 +100,11 @@ trait MultiTenant
     public function belongsToCurrentSpace(): bool
     {
         $currentSpace = app('current.space');
-        
-        if (!$currentSpace instanceof Space) {
+
+        if (! $currentSpace instanceof Space) {
             return false;
         }
-        
+
         return $this->belongsToSpace($currentSpace);
     }
 }

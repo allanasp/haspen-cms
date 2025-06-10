@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 /**
- * Trait HasUuid
+ * Trait HasUuid.
  *
  * Provides UUID functionality for models that need public UUID identifiers.
  * UUIDs are automatically generated on model creation and exposed in API responses.
@@ -38,7 +38,8 @@ trait HasUuid
     /**
      * Find a model by UUID.
      *
-     * @param  string  $uuid
+     * @param string $uuid
+     *
      * @return static|null
      */
     public static function findByUuid(string $uuid): ?static
@@ -49,7 +50,8 @@ trait HasUuid
     /**
      * Find a model by UUID or fail.
      *
-     * @param  string  $uuid
+     * @param string $uuid
+     *
      * @return static
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
@@ -62,8 +64,9 @@ trait HasUuid
     /**
      * Scope a query to find by UUID.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $uuid
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $uuid
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeUuid($query, string $uuid)

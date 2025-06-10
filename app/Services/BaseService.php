@@ -7,12 +7,12 @@ namespace App\Services;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Base service class providing common functionality for all services
+ * Base service class providing common functionality for all services.
  */
 abstract class BaseService
 {
     /**
-     * Log an info message with service context
+     * Log an info message with service context.
      */
     protected function logInfo(string $message, array $context = []): void
     {
@@ -20,7 +20,7 @@ abstract class BaseService
     }
 
     /**
-     * Log an error message with service context
+     * Log an error message with service context.
      */
     protected function logError(string $message, array $context = []): void
     {
@@ -28,7 +28,7 @@ abstract class BaseService
     }
 
     /**
-     * Log a warning message with service context
+     * Log a warning message with service context.
      */
     protected function logWarning(string $message, array $context = []): void
     {
@@ -36,7 +36,7 @@ abstract class BaseService
     }
 
     /**
-     * Log a debug message with service context
+     * Log a debug message with service context.
      */
     protected function logDebug(string $message, array $context = []): void
     {

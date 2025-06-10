@@ -15,7 +15,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 /**
- * User Model
+ * User Model.
  *
  * Represents a user in the multi-tenant headless CMS.
  * Users can belong to multiple spaces with different roles.
@@ -43,7 +43,12 @@ use Laravel\Sanctum\HasApiTokens;
  */
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasApiTokens, HasUuid, SoftDeletes, Cacheable;
+    use HasFactory;
+    use Notifiable;
+    use HasApiTokens;
+    use HasUuid;
+    use SoftDeletes;
+    use Cacheable;
 
     /**
      * The attributes that are mass assignable.
@@ -88,12 +93,12 @@ class User extends Authenticatable
     ];
 
     /**
-     * Cache TTL in seconds (1 hour)
+     * Cache TTL in seconds (1 hour).
      */
     protected int $cacheTtl = 3600;
 
     /**
-     * Available user statuses
+     * Available user statuses.
      */
     public const STATUS_ACTIVE = 'active';
     public const STATUS_INACTIVE = 'inactive';
@@ -165,7 +170,7 @@ class User extends Authenticatable
     public function belongsToSpace(Space|int $space): bool
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
-        
+
         return $this->spaces()->where('space_id', $spaceId)->exists();
     }
 
@@ -175,13 +180,13 @@ class User extends Authenticatable
     public function getRoleInSpace(Space|int $space): ?Role
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
-        
+
         $pivot = $this->spaces()->where('space_id', $spaceId)->first()?->pivot;
-        
-        if (!$pivot || !$pivot->role_id) {
+
+        if (! $pivot || ! $pivot->role_id) {
             return null;
         }
-        
+
         return Role::find($pivot->role_id);
     }
 
@@ -191,9 +196,9 @@ class User extends Authenticatable
     public function getCustomPermissionsInSpace(Space|int $space): array
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
-        
+
         $pivot = $this->spaces()->where('space_id', $spaceId)->first()?->pivot;
-        
+
         return $pivot?->custom_permissions ?? [];
     }
 
@@ -204,17 +209,17 @@ class User extends Authenticatable
     {
         $role = $this->getRoleInSpace($space);
         $customPermissions = $this->getCustomPermissionsInSpace($space);
-        
+
         // Check custom permissions first
         if (isset($customPermissions[$permission])) {
             return (bool) $customPermissions[$permission];
         }
-        
+
         // Check role permissions
         if ($role) {
             return $role->hasPermission($permission);
         }
-        
+
         return false;
     }
 
@@ -244,7 +249,7 @@ class User extends Authenticatable
     {
         $preferences = $this->preferences ?? [];
         $preferences[$key] = $value;
-        
+
         return $this->update(['preferences' => $preferences]);
     }
 
@@ -263,7 +268,7 @@ class User extends Authenticatable
     {
         $metadata = $this->metadata ?? [];
         $metadata[$key] = $value;
-        
+
         return $this->update(['metadata' => $metadata]);
     }
 
@@ -289,7 +294,7 @@ class User extends Authenticatable
     protected function generateDefaultAvatar(): string
     {
         $hash = md5(strtolower(trim($this->email)));
-        
+
         return "https://www.gravatar.com/avatar/{$hash}?d=identicon&s=200";
     }
 

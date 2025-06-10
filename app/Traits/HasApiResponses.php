@@ -10,12 +10,12 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Trait for standardized API responses
+ * Trait for standardized API responses.
  */
 trait HasApiResponses
 {
     /**
-     * Return a success response
+     * Return a success response.
      */
     protected function success(
         mixed $data = null,
@@ -35,7 +35,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return an error response
+     * Return an error response.
      */
     protected function error(
         string $message = 'An error occurred',
@@ -47,7 +47,7 @@ trait HasApiResponses
             'message' => $message,
         ];
 
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             $response['errors'] = $errors;
         }
 
@@ -55,7 +55,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return a validation error response
+     * Return a validation error response.
      */
     protected function validationError(
         array $errors,
@@ -65,7 +65,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return a not found response
+     * Return a not found response.
      */
     protected function notFound(string $message = 'Resource not found'): JsonResponse
     {
@@ -73,7 +73,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return an unauthorized response
+     * Return an unauthorized response.
      */
     protected function unauthorized(string $message = 'Unauthorized'): JsonResponse
     {
@@ -81,7 +81,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return a forbidden response
+     * Return a forbidden response.
      */
     protected function forbidden(string $message = 'Forbidden'): JsonResponse
     {
@@ -89,7 +89,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return a server error response
+     * Return a server error response.
      */
     protected function serverError(string $message = 'Internal server error'): JsonResponse
     {
@@ -97,7 +97,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return a created response
+     * Return a created response.
      */
     protected function created(
         mixed $data = null,
@@ -107,7 +107,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return a no content response
+     * Return a no content response.
      */
     protected function noContent(): JsonResponse
     {
@@ -115,7 +115,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return a resource response
+     * Return a resource response.
      */
     protected function resource(JsonResource $resource, string $message = 'Success'): JsonResponse
     {
@@ -123,7 +123,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return a collection response
+     * Return a collection response.
      */
     protected function collection(ResourceCollection $collection, string $message = 'Success'): JsonResponse
     {
@@ -131,7 +131,7 @@ trait HasApiResponses
     }
 
     /**
-     * Return a paginated response
+     * Return a paginated response.
      */
     protected function paginated($data, string $message = 'Success'): JsonResponse
     {

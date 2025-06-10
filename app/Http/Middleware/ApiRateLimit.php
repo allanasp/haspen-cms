@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use Closure;
+use Illuminate\Cache\RateLimiter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Cache\RateLimiter;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 /**
- * API Rate Limiting Middleware
+ * API Rate Limiting Middleware.
  */
 class ApiRateLimit
 {
@@ -20,12 +19,12 @@ class ApiRateLimit
     }
 
     /**
-     * Handle an incoming request
+     * Handle an incoming request.
      */
-    public function handle(Request $request, Closure $next, string $maxAttempts = '60', string $decayMinutes = '1'): mixed
+    public function handle(Request $request, \Closure $next, string $maxAttempts = '60', string $decayMinutes = '1'): mixed
     {
         $key = $this->resolveRequestSignature($request);
-        
+
         $maxAttempts = (int) $maxAttempts;
         $decayMinutes = (int) $decayMinutes;
 
@@ -49,14 +48,14 @@ class ApiRateLimit
     }
 
     /**
-     * Resolve the request signature
+     * Resolve the request signature.
      */
     protected function resolveRequestSignature(Request $request): string
     {
         $userId = $request->user()?->id ?? 'guest';
         $route = $request->route()?->getName() ?? $request->path();
-        
-        return sprintf(
+
+        return \sprintf(
             'api_rate_limit:%s:%s:%s',
             $userId,
             $request->ip(),
@@ -65,7 +64,7 @@ class ApiRateLimit
     }
 
     /**
-     * Create a rate limit response
+     * Create a rate limit response.
      */
     protected function buildRateLimitResponse(string $key, int $maxAttempts): Response
     {
@@ -83,7 +82,7 @@ class ApiRateLimit
     }
 
     /**
-     * Add rate limit headers to response
+     * Add rate limit headers to response.
      */
     protected function addHeaders(Response $response, int $maxAttempts, int $remainingAttempts): Response
     {
@@ -96,7 +95,7 @@ class ApiRateLimit
     }
 
     /**
-     * Calculate remaining attempts
+     * Calculate remaining attempts.
      */
     protected function calculateRemainingAttempts(string $key, int $maxAttempts): int
     {

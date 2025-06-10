@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 /**
- * Trait Sluggable
+ * Trait Sluggable.
  *
  * Automatically generates URL-friendly slugs from a source field.
  * Ensures uniqueness within the model scope and handles updates.
@@ -45,7 +45,7 @@ trait Sluggable
     protected function updateSlugIfNeeded(): void
     {
         $sourceField = $this->getSlugSourceField();
-        
+
         if ($this->isDirty($sourceField) && $this->shouldAutoUpdateSlug()) {
             $this->slug = $this->generateUniqueSlug();
         }
@@ -54,14 +54,15 @@ trait Sluggable
     /**
      * Generate a unique slug based on the source field.
      *
-     * @param  string|null  $value
+     * @param string|null $value
+     *
      * @return string
      */
     public function generateUniqueSlug(?string $value = null): string
     {
         $value = $value ?: $this->getSlugSourceValue();
         $baseSlug = Str::slug($value);
-        
+
         if (empty($baseSlug)) {
             $baseSlug = 'item';
         }
@@ -80,7 +81,8 @@ trait Sluggable
     /**
      * Check if a slug already exists.
      *
-     * @param  string  $slug
+     * @param string $slug
+     *
      * @return bool
      */
     protected function slugExists(string $slug): bool
@@ -118,7 +120,7 @@ trait Sluggable
     protected function getSlugSourceValue(): string
     {
         $field = $this->getSlugSourceField();
-        
+
         return (string) $this->getAttribute($field);
     }
 
@@ -135,8 +137,9 @@ trait Sluggable
     /**
      * Scope a query to find by slug.
      *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $slug
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $slug
+     *
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeSlug($query, string $slug)
@@ -147,7 +150,8 @@ trait Sluggable
     /**
      * Find a model by slug.
      *
-     * @param  string  $slug
+     * @param string $slug
+     *
      * @return static|null
      */
     public static function findBySlug(string $slug): ?static
@@ -158,7 +162,8 @@ trait Sluggable
     /**
      * Find a model by slug or fail.
      *
-     * @param  string  $slug
+     * @param string $slug
+     *
      * @return static
      *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
@@ -171,8 +176,7 @@ trait Sluggable
     /**
      * Set the slug manually.
      *
-     * @param  string  $slug
-     * @return void
+     * @param string $slug
      */
     public function setSlug(string $slug): void
     {

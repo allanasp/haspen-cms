@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class RoleSeeder extends Seeder
@@ -35,17 +36,17 @@ class RoleSeeder extends Seeder
                 'description' => 'Can create and edit content',
                 'permissions' => [
                     'stories' => [
-                        'create' => true, 
-                        'read' => true, 
-                        'update' => true, 
-                        'delete' => false, 
+                        'create' => true,
+                        'read' => true,
+                        'update' => true,
+                        'delete' => false,
                         'publish' => false,
                         'restrictions' => ['own_content_only' => true]
                     ],
                     'assets' => [
-                        'create' => true, 
-                        'read' => true, 
-                        'update' => true, 
+                        'create' => true,
+                        'read' => true,
+                        'update' => true,
                         'delete' => false,
                         'restrictions' => ['max_file_size' => '10MB']
                     ],

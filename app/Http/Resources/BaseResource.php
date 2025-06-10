@@ -8,12 +8,12 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Base resource class for consistent API responses
+ * Base resource class for consistent API responses.
  */
 class BaseResource extends JsonResource
 {
     /**
-     * Transform the resource into an array
+     * Transform the resource into an array.
      *
      * @return array<string, mixed>
      */
@@ -21,13 +21,13 @@ class BaseResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'created_at' => $this->when($this->created_at, fn() => $this->created_at?->toISOString()),
-            'updated_at' => $this->when($this->updated_at, fn() => $this->updated_at?->toISOString()),
+            'created_at' => $this->when($this->created_at, fn () => $this->created_at?->toISOString()),
+            'updated_at' => $this->when($this->updated_at, fn () => $this->updated_at?->toISOString()),
         ];
     }
 
     /**
-     * Include timestamps in the response
+     * Include timestamps in the response.
      */
     protected function withTimestamps(): array
     {
@@ -38,20 +38,20 @@ class BaseResource extends JsonResource
     }
 
     /**
-     * Include soft delete timestamp if available
+     * Include soft delete timestamp if available.
      */
     protected function withSoftDeleteTimestamp(): array
     {
         return [
             'deleted_at' => $this->when(
                 property_exists($this->resource, 'deleted_at') && $this->deleted_at,
-                fn() => $this->deleted_at?->toISOString()
+                fn () => $this->deleted_at?->toISOString()
             ),
         ];
     }
 
     /**
-     * Include pagination meta data
+     * Include pagination meta data.
      */
     public function withPaginationMeta(): array
     {

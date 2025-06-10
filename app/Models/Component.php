@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Component Model
+ * Component Model.
  *
  * Represents reusable content block definitions in the headless CMS.
  * Components define the structure and fields for content blocks (Storyblok-style).
@@ -46,7 +46,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Component extends Model
 {
-    use HasFactory, HasUuid, MultiTenant, Sluggable, SoftDeletes, Cacheable;
+    use HasFactory;
+    use HasUuid;
+    use MultiTenant;
+    use Sluggable;
+    use SoftDeletes;
+    use Cacheable;
 
     /**
      * The attributes that are mass assignable.
@@ -97,25 +102,26 @@ class Component extends Model
     ];
 
     /**
-     * Sluggable configuration
+     * Sluggable configuration.
      */
     protected string $slugSourceField = 'technical_name';
+
     protected bool $autoUpdateSlug = false;
 
     /**
-     * Cache TTL in seconds (6 hours)
+     * Cache TTL in seconds (6 hours).
      */
     protected int $cacheTtl = 21600;
 
     /**
-     * Available component statuses
+     * Available component statuses.
      */
     public const STATUS_ACTIVE = 'active';
     public const STATUS_INACTIVE = 'inactive';
     public const STATUS_DEPRECATED = 'deprecated';
 
     /**
-     * Available field types
+     * Available field types.
      */
     public const FIELD_TYPES = [
         'text',
@@ -290,6 +296,7 @@ class Component extends Model
             // Check required fields
             if (($field['required'] ?? false) && ($value === null || $value === '')) {
                 $errors[$key] = "Field '{$key}' is required";
+
                 continue;
             }
 
@@ -334,15 +341,15 @@ class Component extends Model
      */
     protected function validateString(mixed $value, array $field): ?string
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return 'Value must be a string';
         }
 
-        if (isset($field['min_length']) && strlen($value) < $field['min_length']) {
+        if (isset($field['min_length']) && \strlen($value) < $field['min_length']) {
             return "Value must be at least {$field['min_length']} characters";
         }
 
-        if (isset($field['max_length']) && strlen($value) > $field['max_length']) {
+        if (isset($field['max_length']) && \strlen($value) > $field['max_length']) {
             return "Value must not exceed {$field['max_length']} characters";
         }
 
@@ -354,7 +361,7 @@ class Component extends Model
      */
     protected function validateNumber(mixed $value, array $field): ?string
     {
-        if (!is_numeric($value)) {
+        if (! is_numeric($value)) {
             return 'Value must be a number';
         }
 
@@ -376,7 +383,7 @@ class Component extends Model
      */
     protected function validateBoolean(mixed $value): ?string
     {
-        if (!is_bool($value) && !in_array($value, [0, 1, '0', '1', 'true', 'false'])) {
+        if (! \is_bool($value) && ! \in_array($value, [0, 1, '0', '1', 'true', 'false'])) {
             return 'Value must be a boolean';
         }
 
@@ -388,7 +395,7 @@ class Component extends Model
      */
     protected function validateEmail(mixed $value): ?string
     {
-        if (!is_string($value) || !filter_var($value, FILTER_VALIDATE_EMAIL)) {
+        if (! \is_string($value) || ! filter_var($value, FILTER_VALIDATE_EMAIL)) {
             return 'Value must be a valid email address';
         }
 
@@ -400,7 +407,7 @@ class Component extends Model
      */
     protected function validateUrl(mixed $value): ?string
     {
-        if (!is_string($value) || !filter_var($value, FILTER_VALIDATE_URL)) {
+        if (! \is_string($value) || ! filter_var($value, FILTER_VALIDATE_URL)) {
             return 'Value must be a valid URL';
         }
 
@@ -412,7 +419,7 @@ class Component extends Model
      */
     protected function validateDate(mixed $value): ?string
     {
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return 'Date must be a string';
         }
 
@@ -430,13 +437,13 @@ class Component extends Model
      */
     protected function validateSelect(mixed $value, array $field): ?string
     {
-        if (!isset($field['options']) || !is_array($field['options'])) {
+        if (! isset($field['options']) || ! \is_array($field['options'])) {
             return null;
         }
 
         $validOptions = array_column($field['options'], 'value');
-        
-        if (!in_array($value, $validOptions)) {
+
+        if (! \in_array($value, $validOptions)) {
             return 'Value must be one of the allowed options';
         }
 
@@ -448,18 +455,18 @@ class Component extends Model
      */
     protected function validateMultiselect(mixed $value, array $field): ?string
     {
-        if (!is_array($value)) {
+        if (! \is_array($value)) {
             return 'Value must be an array';
         }
 
-        if (!isset($field['options']) || !is_array($field['options'])) {
+        if (! isset($field['options']) || ! \is_array($field['options'])) {
             return null;
         }
 
         $validOptions = array_column($field['options'], 'value');
-        
+
         foreach ($value as $item) {
-            if (!in_array($item, $validOptions)) {
+            if (! \in_array($item, $validOptions)) {
                 return 'All values must be from the allowed options';
             }
         }
@@ -472,16 +479,16 @@ class Component extends Model
      */
     protected function validateJson(mixed $value): ?string
     {
-        if (is_array($value) || is_object($value)) {
+        if (\is_array($value) || \is_object($value)) {
             return null; // Already decoded
         }
 
-        if (!is_string($value)) {
+        if (! \is_string($value)) {
             return 'JSON value must be a string or array';
         }
 
         json_decode($value);
-        
+
         if (json_last_error() !== JSON_ERROR_NONE) {
             return 'Value must be valid JSON';
         }
@@ -494,7 +501,7 @@ class Component extends Model
      */
     public function getPreview(array $data): string
     {
-        if (!$this->preview_field) {
+        if (! $this->preview_field) {
             return $this->name;
         }
 
@@ -537,18 +544,18 @@ class Component extends Model
         }
 
         // Require authentication
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
         // Check user role in space
         $userRole = $user->getRoleInSpace($this->space_id);
-        
-        if (!$userRole) {
+
+        if (! $userRole) {
             return false;
         }
 
-        return in_array($userRole->slug, $this->allowed_roles);
+        return \in_array($userRole->slug, $this->allowed_roles);
     }
 
     /**

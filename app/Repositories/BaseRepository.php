@@ -10,17 +10,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Base repository class providing common CRUD operations
+ * Base repository class providing common CRUD operations.
  */
 abstract class BaseRepository
 {
     /**
-     * The model instance
+     * The model instance.
      */
     protected Model $model;
 
     /**
-     * Create a new repository instance
+     * Create a new repository instance.
      */
     public function __construct(Model $model)
     {
@@ -28,7 +28,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Get all records
+     * Get all records.
      */
     public function all(array $columns = ['*']): Collection
     {
@@ -36,7 +36,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Find a record by ID
+     * Find a record by ID.
      */
     public function find(int|string $id, array $columns = ['*']): ?Model
     {
@@ -44,7 +44,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Find a record by ID or fail
+     * Find a record by ID or fail.
      */
     public function findOrFail(int|string $id, array $columns = ['*']): Model
     {
@@ -52,7 +52,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Find records by criteria
+     * Find records by criteria.
      */
     public function findWhere(array $criteria, array $columns = ['*']): Collection
     {
@@ -66,7 +66,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Find first record by criteria
+     * Find first record by criteria.
      */
     public function findWhereFirst(array $criteria, array $columns = ['*']): ?Model
     {
@@ -80,7 +80,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Create a new record
+     * Create a new record.
      */
     public function create(array $data): Model
     {
@@ -88,7 +88,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Update a record
+     * Update a record.
      */
     public function update(Model $model, array $data): bool
     {
@@ -96,7 +96,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Update records by criteria
+     * Update records by criteria.
      */
     public function updateWhere(array $criteria, array $data): int
     {
@@ -110,7 +110,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Delete a record
+     * Delete a record.
      */
     public function delete(Model $model): bool
     {
@@ -118,7 +118,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Delete records by ID
+     * Delete records by ID.
      */
     public function deleteById(int|string $id): bool
     {
@@ -126,7 +126,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Delete records by criteria
+     * Delete records by criteria.
      */
     public function deleteWhere(array $criteria): int
     {
@@ -140,7 +140,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Get paginated records
+     * Get paginated records.
      */
     public function paginate(int $perPage = 15, array $columns = ['*']): LengthAwarePaginator
     {
@@ -148,7 +148,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Get records with pagination and criteria
+     * Get records with pagination and criteria.
      */
     public function paginateWhere(array $criteria, int $perPage = 15, array $columns = ['*']): LengthAwarePaginator
     {
@@ -162,7 +162,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Get query builder
+     * Get query builder.
      */
     public function query(): Builder
     {
@@ -170,7 +170,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Count records
+     * Count records.
      */
     public function count(): int
     {
@@ -178,7 +178,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Count records by criteria
+     * Count records by criteria.
      */
     public function countWhere(array $criteria): int
     {
@@ -192,7 +192,7 @@ abstract class BaseRepository
     }
 
     /**
-     * Check if record exists
+     * Check if record exists.
      */
     public function exists(array $criteria): bool
     {

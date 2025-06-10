@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Trait Cacheable
+ * Trait Cacheable.
  *
  * Provides automatic model caching functionality with cache invalidation
  * on model updates, creation, and deletion.
@@ -32,9 +32,10 @@ trait Cacheable
     /**
      * Get a cached version of the model by key.
      *
-     * @param  string  $key
-     * @param  callable  $callback
-     * @param  int|null  $ttl  Time to live in seconds
+     * @param string $key
+     * @param callable $callback
+     * @param int|null $ttl Time to live in seconds
+     *
      * @return mixed
      */
     public function getCached(string $key, callable $callback, ?int $ttl = null): mixed
@@ -48,9 +49,10 @@ trait Cacheable
     /**
      * Cache a value with automatic model-based key generation.
      *
-     * @param  string  $key
-     * @param  mixed  $value
-     * @param  int|null  $ttl
+     * @param string $key
+     * @param mixed $value
+     * @param int|null $ttl
+     *
      * @return bool
      */
     public function putCache(string $key, mixed $value, ?int $ttl = null): bool
@@ -64,13 +66,14 @@ trait Cacheable
     /**
      * Remove a specific cache key for this model.
      *
-     * @param  string  $key
+     * @param string $key
+     *
      * @return bool
      */
     public function forgetCache(string $key): bool
     {
         $cacheKey = $this->getCacheKey($key);
-        
+
         return Cache::forget($cacheKey);
     }
 
@@ -80,10 +83,10 @@ trait Cacheable
     public function clearCache(): void
     {
         $pattern = $this->getCacheKeyPrefix() . '*';
-        
+
         // Get all cache keys matching the pattern
         $keys = $this->getCacheKeys($pattern);
-        
+
         foreach ($keys as $key) {
             Cache::forget($key);
         }
@@ -95,7 +98,8 @@ trait Cacheable
     /**
      * Generate a cache key for this model.
      *
-     * @param  string  $suffix
+     * @param string $suffix
+     *
      * @return string
      */
     protected function getCacheKey(string $suffix): string
@@ -112,7 +116,7 @@ trait Cacheable
     {
         $modelClass = class_basename($this);
         $identifier = $this->exists ? $this->getKey() : 'new';
-        
+
         return strtolower($modelClass) . ':' . $identifier . ':';
     }
 
@@ -129,7 +133,8 @@ trait Cacheable
     /**
      * Get cache keys matching a pattern.
      *
-     * @param  string  $pattern
+     * @param string $pattern
+     *
      * @return array
      */
     protected function getCacheKeys(string $pattern): array
@@ -137,7 +142,7 @@ trait Cacheable
         // This implementation depends on the cache driver
         // Redis supports KEYS command, for other drivers we maintain a key registry
         $driver = Cache::getStore();
-        
+
         if (method_exists($driver, 'keys')) {
             return $driver->keys($pattern);
         }
@@ -149,16 +154,17 @@ trait Cacheable
     /**
      * Get cache keys from a maintained registry.
      *
-     * @param  string  $pattern
+     * @param string $pattern
+     *
      * @return array
      */
     protected function getCacheKeysFromRegistry(string $pattern): array
     {
         $registryKey = 'cache_registry:' . class_basename($this);
         $registry = Cache::get($registryKey, []);
-        
+
         $patternRegex = '/^' . str_replace('*', '.*', preg_quote($pattern, '/')) . '$/';
-        
+
         return array_filter($registry, function ($key) use ($patternRegex) {
             return preg_match($patternRegex, $key);
         });
@@ -167,15 +173,14 @@ trait Cacheable
     /**
      * Add a cache key to the registry.
      *
-     * @param  string  $key
-     * @return void
+     * @param string $key
      */
     protected function addToRegistry(string $key): void
     {
         $registryKey = 'cache_registry:' . class_basename($this);
         $registry = Cache::get($registryKey, []);
-        
-        if (!in_array($key, $registry)) {
+
+        if (! \in_array($key, $registry)) {
             $registry[] = $key;
             Cache::put($registryKey, $registry, 86400); // 24 hours
         }
@@ -193,9 +198,10 @@ trait Cacheable
     /**
      * Cache a query result.
      *
-     * @param  string  $key
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  int|null  $ttl
+     * @param string $key
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param int|null $ttl
+     *
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function cacheQuery(string $key, $query, ?int $ttl = null)
@@ -212,14 +218,15 @@ trait Cacheable
     /**
      * Clear query cache.
      *
-     * @param  string  $key
+     * @param string $key
+     *
      * @return bool
      */
     public static function forgetQueryCache(string $key): bool
     {
         $model = new static();
         $cacheKey = 'query:' . class_basename($model) . ':' . $key;
-        
+
         return Cache::forget($cacheKey);
     }
 }

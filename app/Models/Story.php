@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Story Model
+ * Story Model.
  *
  * Represents content pages/posts in the headless CMS.
  * Stories contain structured content using components (Storyblok-style).
@@ -55,7 +55,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Story extends Model
 {
-    use HasFactory, HasUuid, MultiTenant, Sluggable, SoftDeletes, Cacheable;
+    use HasFactory;
+    use HasUuid;
+    use MultiTenant;
+    use Sluggable;
+    use SoftDeletes;
+    use Cacheable;
 
     /**
      * The attributes that are mass assignable.
@@ -120,18 +125,19 @@ class Story extends Model
     ];
 
     /**
-     * Sluggable configuration
+     * Sluggable configuration.
      */
     protected string $slugSourceField = 'name';
+
     protected bool $autoUpdateSlug = false;
 
     /**
-     * Cache TTL in seconds (1 hour)
+     * Cache TTL in seconds (1 hour).
      */
     protected int $cacheTtl = 3600;
 
     /**
-     * Available story statuses
+     * Available story statuses.
      */
     public const STATUS_DRAFT = 'draft';
     public const STATUS_REVIEW = 'review';
@@ -266,8 +272,8 @@ class Story extends Model
      */
     public function isPublished(): bool
     {
-        return $this->status === self::STATUS_PUBLISHED && 
-               $this->published_at && 
+        return $this->status === self::STATUS_PUBLISHED &&
+               $this->published_at &&
                $this->published_at->isPast();
     }
 
@@ -284,8 +290,8 @@ class Story extends Model
      */
     public function isScheduled(): bool
     {
-        return $this->status === self::STATUS_SCHEDULED && 
-               $this->scheduled_at && 
+        return $this->status === self::STATUS_SCHEDULED &&
+               $this->scheduled_at &&
                $this->scheduled_at->isFuture();
     }
 
@@ -401,8 +407,8 @@ class Story extends Model
     public function getComponentsByType(string $componentType): array
     {
         $components = [];
-        
-        if (isset($this->content['body']) && is_array($this->content['body'])) {
+
+        if (isset($this->content['body']) && \is_array($this->content['body'])) {
             foreach ($this->content['body'] as $component) {
                 if (isset($component['component']) && $component['component'] === $componentType) {
                     $components[] = $component;
@@ -418,7 +424,7 @@ class Story extends Model
      */
     public function hasTranslation(string $language): bool
     {
-        return in_array($language, $this->translated_languages ?? []);
+        return \in_array($language, $this->translated_languages ?? []);
     }
 
     /**
@@ -428,7 +434,7 @@ class Story extends Model
     {
         $config = $this->space->getEnvironmentConfig($environment);
         $baseUrl = $config['base_url'] ?? '';
-        
+
         return rtrim($baseUrl, '/') . $this->path;
     }
 
@@ -443,18 +449,18 @@ class Story extends Model
         }
 
         // Require authentication
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
         // Check user role in space
         $userRole = $user->getRoleInSpace($this->space_id);
-        
-        if (!$userRole) {
+
+        if (! $userRole) {
             return false;
         }
 
-        return in_array($userRole->slug, $this->allowed_roles);
+        return \in_array($userRole->slug, $this->allowed_roles);
     }
 
     /**

@@ -4,27 +4,29 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use DateTimeImmutable;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Token\Plain;
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\PermittedFor;
-use Lcobucci\JWT\Validation\Constraint\RelatedTo;
 use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 use Psr\Clock\ClockInterface;
 
 /**
- * JWT Service for handling JSON Web Token operations
+ * JWT Service for handling JSON Web Token operations.
  */
 class JwtService extends BaseService
 {
     private Configuration $config;
+
     private string $issuer;
+
     private string $audience;
+
     private int $ttl;
+
     private int $refreshTtl;
 
     public function __construct(ClockInterface $clock = null)
@@ -46,12 +48,12 @@ class JwtService extends BaseService
     }
 
     /**
-     * Generate an access token for a user
+     * Generate an access token for a user.
      */
     public function generateAccessToken(int|string $userId, array $claims = []): string
     {
-        $now = new DateTimeImmutable();
-        
+        $now = new \DateTimeImmutable();
+
         $builder = $this->config->builder()
             ->issuedBy($this->issuer)
             ->permittedFor($this->audience)
@@ -77,12 +79,12 @@ class JwtService extends BaseService
     }
 
     /**
-     * Generate a refresh token for a user
+     * Generate a refresh token for a user.
      */
     public function generateRefreshToken(int|string $userId): string
     {
-        $now = new DateTimeImmutable();
-        
+        $now = new \DateTimeImmutable();
+
         $token = $this->config->builder()
             ->issuedBy($this->issuer)
             ->permittedFor($this->audience)
@@ -102,14 +104,14 @@ class JwtService extends BaseService
     }
 
     /**
-     * Parse and validate a token
+     * Parse and validate a token.
      */
     public function parseToken(string $tokenString): Plain
     {
         try {
             $token = $this->config->parser()->parse($tokenString);
-            
-            if (!$token instanceof Plain) {
+
+            if (! $token instanceof Plain) {
                 throw new \InvalidArgumentException('Invalid token format');
             }
 
@@ -118,12 +120,13 @@ class JwtService extends BaseService
             $this->logError('Failed to parse token', [
                 'error' => $e->getMessage(),
             ]);
+
             throw new \InvalidArgumentException('Invalid token: ' . $e->getMessage());
         }
     }
 
     /**
-     * Validate a token
+     * Validate a token.
      */
     public function validateToken(Plain $token): bool
     {
@@ -135,23 +138,24 @@ class JwtService extends BaseService
             ];
 
             $this->config->validator()->assert($token, ...$constraints);
-            
+
             return true;
         } catch (RequiredConstraintsViolated $e) {
             $this->logWarning('Token validation failed', [
-                'violations' => array_map(fn($violation) => $violation->getMessage(), $e->violations()),
+                'violations' => array_map(fn ($violation) => $violation->getMessage(), $e->violations()),
             ]);
+
             return false;
         }
     }
 
     /**
-     * Get user ID from token
+     * Get user ID from token.
      */
     public function getUserId(Plain $token): string
     {
         $subject = $token->claims()->get('sub');
-        
+
         if ($subject === null) {
             throw new \InvalidArgumentException('Token does not contain a subject claim');
         }
@@ -160,12 +164,12 @@ class JwtService extends BaseService
     }
 
     /**
-     * Get token type
+     * Get token type.
      */
     public function getTokenType(Plain $token): string
     {
         $type = $token->claims()->get('type');
-        
+
         if ($type === null) {
             throw new \InvalidArgumentException('Token does not contain a type claim');
         }
@@ -174,7 +178,7 @@ class JwtService extends BaseService
     }
 
     /**
-     * Get custom claim from token
+     * Get custom claim from token.
      */
     public function getClaim(Plain $token, string $name): mixed
     {
@@ -182,35 +186,35 @@ class JwtService extends BaseService
     }
 
     /**
-     * Check if token is expired
+     * Check if token is expired.
      */
     public function isExpired(Plain $token): bool
     {
         $expiresAt = $token->claims()->get('exp');
-        
+
         if ($expiresAt === null) {
             return true;
         }
 
-        return $expiresAt < new DateTimeImmutable();
+        return $expiresAt < new \DateTimeImmutable();
     }
 
     /**
-     * Get token expiration time
+     * Get token expiration time.
      */
-    public function getExpirationTime(Plain $token): ?DateTimeImmutable
+    public function getExpirationTime(Plain $token): ?\DateTimeImmutable
     {
         return $token->claims()->get('exp');
     }
 
     /**
-     * Refresh an access token using a refresh token
+     * Refresh an access token using a refresh token.
      */
     public function refreshAccessToken(string $refreshTokenString, array $claims = []): array
     {
         $refreshToken = $this->parseToken($refreshTokenString);
-        
-        if (!$this->validateToken($refreshToken)) {
+
+        if (! $this->validateToken($refreshToken)) {
             throw new \InvalidArgumentException('Invalid refresh token');
         }
 
@@ -219,7 +223,7 @@ class JwtService extends BaseService
         }
 
         $userId = $this->getUserId($refreshToken);
-        
+
         $newAccessToken = $this->generateAccessToken($userId, $claims);
         $newRefreshToken = $this->generateRefreshToken($userId);
 
@@ -234,7 +238,7 @@ class JwtService extends BaseService
     }
 
     /**
-     * Create token pair (access + refresh)
+     * Create token pair (access + refresh).
      */
     public function createTokenPair(int|string $userId, array $claims = []): array
     {

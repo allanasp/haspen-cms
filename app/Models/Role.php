@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Role Model
+ * Role Model.
  *
  * Represents user roles with permissions in the headless CMS.
  * Roles define what users can do within a space.
@@ -33,7 +33,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Role extends Model
 {
-    use HasFactory, HasUuid, SoftDeletes, Cacheable;
+    use HasFactory;
+    use HasUuid;
+    use SoftDeletes;
+    use Cacheable;
 
     /**
      * The attributes that are mass assignable.
@@ -71,12 +74,12 @@ class Role extends Model
     ];
 
     /**
-     * Cache TTL in seconds (6 hours)
+     * Cache TTL in seconds (6 hours).
      */
     protected int $cacheTtl = 21600;
 
     /**
-     * Available permissions
+     * Available permissions.
      */
     public const PERMISSIONS = [
         // Space management
@@ -84,7 +87,7 @@ class Role extends Model
         'space.edit',
         'space.delete',
         'space.manage_users',
-        
+
         // Story management
         'story.view',
         'story.create',
@@ -92,33 +95,33 @@ class Role extends Model
         'story.delete',
         'story.publish',
         'story.unpublish',
-        
+
         // Component management
         'component.view',
         'component.create',
         'component.edit',
         'component.delete',
-        
+
         // Asset management
         'asset.view',
         'asset.upload',
         'asset.edit',
         'asset.delete',
-        
+
         // Datasource management
         'datasource.view',
         'datasource.create',
         'datasource.edit',
         'datasource.delete',
         'datasource.sync',
-        
+
         // User management
         'user.view',
         'user.invite',
         'user.edit',
         'user.remove',
         'user.manage_roles',
-        
+
         // System permissions
         'admin.access',
         'admin.settings',
@@ -126,7 +129,7 @@ class Role extends Model
     ];
 
     /**
-     * System roles
+     * System roles.
      */
     public const ROLE_ADMIN = 'admin';
     public const ROLE_EDITOR = 'editor';
@@ -180,7 +183,7 @@ class Role extends Model
      */
     public function hasPermission(string $permission): bool
     {
-        return in_array($permission, $this->permissions ?? []);
+        return \in_array($permission, $this->permissions ?? []);
     }
 
     /**
@@ -188,7 +191,7 @@ class Role extends Model
      */
     public function hasAnyPermission(array $permissions): bool
     {
-        return !empty(array_intersect($permissions, $this->permissions ?? []));
+        return ! empty(array_intersect($permissions, $this->permissions ?? []));
     }
 
     /**
@@ -204,13 +207,13 @@ class Role extends Model
      */
     public function addPermission(string $permission): bool
     {
-        if (!$this->hasPermission($permission)) {
+        if (! $this->hasPermission($permission)) {
             $permissions = $this->permissions ?? [];
             $permissions[] = $permission;
-            
+
             return $this->update(['permissions' => $permissions]);
         }
-        
+
         return true;
     }
 
@@ -220,8 +223,8 @@ class Role extends Model
     public function removePermission(string $permission): bool
     {
         $permissions = $this->permissions ?? [];
-        $permissions = array_values(array_filter($permissions, fn($p) => $p !== $permission));
-        
+        $permissions = array_values(array_filter($permissions, fn ($p) => $p !== $permission));
+
         return $this->update(['permissions' => $permissions]);
     }
 
@@ -232,7 +235,7 @@ class Role extends Model
     {
         // Validate permissions
         $validPermissions = array_intersect($permissions, self::PERMISSIONS);
-        
+
         return $this->update(['permissions' => $validPermissions]);
     }
 
@@ -272,10 +275,10 @@ class Role extends Model
     public function canManageRole(Role $role): bool
     {
         // System roles can't be managed by non-system roles
-        if ($role->isSystemRole() && !$this->isSystemRole()) {
+        if ($role->isSystemRole() && ! $this->isSystemRole()) {
             return false;
         }
-        
+
         // Can only manage roles with lower priority
         return $this->priority > $role->priority;
     }
