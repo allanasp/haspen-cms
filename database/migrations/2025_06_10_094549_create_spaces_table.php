@@ -1,0 +1,65 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     * 
+     * Spaces table provides multi-tenant isolation for the headless CMS.
+     * Each space represents a separate tenant with isolated content.
+     */
+    public function up(): void
+    {
+        Schema::create('spaces', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('uuid')->unique()->comment('Public UUID for API exposure');
+            $table->string('name')->comment('Human-readable space name');
+            $table->string('slug')->unique()->comment('URL-friendly identifier');
+            $table->string('domain')->nullable()->comment('Custom domain for space');
+            $table->text('description')->nullable()->comment('Space description');
+            
+            // Storyblok-style configuration
+            $table->jsonb('settings')->nullable()->comment('Space configuration and settings');
+            $table->jsonb('environments')->default('{}')->comment('Environment-specific settings (dev, staging, prod)');
+            $table->string('default_language', 10)->default('en')->comment('Default language code');
+            $table->jsonb('languages')->default('["en"]')->comment('Supported language codes');
+            
+            // Plan and limits
+            $table->string('plan', 50)->default('free')->comment('Subscription plan');
+            $table->integer('story_limit')->nullable()->comment('Maximum number of stories allowed');
+            $table->integer('asset_limit')->nullable()->comment('Maximum storage in MB');
+            $table->integer('api_limit')->nullable()->comment('API requests per month');
+            
+            // Status and billing
+            $table->enum('status', ['active', 'suspended', 'deleted'])->default('active')->comment('Space status');
+            $table->timestamp('trial_ends_at')->nullable()->comment('Trial expiration date');
+            $table->timestamp('suspended_at')->nullable()->comment('Suspension timestamp');
+            
+            // Audit fields
+            $table->timestamps();
+            $table->softDeletes();
+            
+            // Indexes for performance
+            $table->index(['status', 'created_at']);
+            $table->index('domain');
+            $table->index('plan');
+            
+            // GIN index for JSONB fields
+            $table->rawIndex('USING GIN (settings)', 'spaces_settings_gin_idx');
+            $table->rawIndex('USING GIN (environments)', 'spaces_environments_gin_idx');
+            $table->rawIndex('USING GIN (languages)', 'spaces_languages_gin_idx');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('spaces');
+    }
+};

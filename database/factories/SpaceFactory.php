@@ -1,0 +1,102 @@
+<?php
+
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Space>
+ */
+class SpaceFactory extends Factory
+{
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        $name = $this->faker->company();
+        
+        return [
+            'uuid' => $this->faker->uuid(),
+            'name' => $name,
+            'slug' => \Illuminate\Support\Str::slug($name),
+            'domain' => $this->faker->optional(0.3)->domainName(),
+            'description' => $this->faker->optional()->paragraph(),
+            'settings' => [
+                'timezone' => $this->faker->timezone(),
+                'date_format' => $this->faker->randomElement(['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD']),
+                'currency' => $this->faker->currencyCode(),
+                'image_optimization' => [
+                    'enabled' => true,
+                    'formats' => ['webp', 'avif'],
+                    'quality' => $this->faker->numberBetween(70, 95),
+                ],
+                'seo' => [
+                    'default_meta_title' => $name . ' - ' . $this->faker->catchPhrase(),
+                    'default_meta_description' => $this->faker->sentence(20),
+                    'robots_default' => 'index,follow',
+                    'sitemap_enabled' => true,
+                ],
+            ],
+            'environments' => [
+                'development' => [
+                    'api_url' => 'https://dev-api.' . \Illuminate\Support\Str::slug($name) . '.com',
+                    'cdn_url' => 'https://dev-cdn.' . \Illuminate\Support\Str::slug($name) . '.com',
+                    'cache_ttl' => 60,
+                    'debug_mode' => true,
+                ],
+                'production' => [
+                    'api_url' => 'https://api.' . \Illuminate\Support\Str::slug($name) . '.com',
+                    'cdn_url' => 'https://cdn.' . \Illuminate\Support\Str::slug($name) . '.com',
+                    'cache_ttl' => 3600,
+                    'debug_mode' => false,
+                ],
+            ],
+            'default_language' => 'en',
+            'languages' => $this->faker->randomElements(['en', 'es', 'fr', 'de', 'it', 'pt'], $this->faker->numberBetween(1, 3)),
+            'plan' => $this->faker->randomElement(['free', 'starter', 'professional', 'enterprise']),
+            'story_limit' => $this->faker->optional(0.7)->numberBetween(10, 1000),
+            'asset_limit' => $this->faker->optional(0.7)->numberBetween(100, 10000), // MB
+            'api_limit' => $this->faker->optional(0.7)->numberBetween(1000, 100000),
+            'status' => $this->faker->randomElement(['active', 'suspended', 'deleted']),
+            'trial_ends_at' => $this->faker->optional(0.4)->dateTimeBetween('+1 week', '+1 month'),
+        ];
+    }
+
+    /**
+     * Configure the model factory for active spaces.
+     */
+    public function active(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'active',
+            'suspended_at' => null,
+        ]);
+    }
+
+    /**
+     * Configure the model factory for suspended spaces.
+     */
+    public function suspended(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'suspended',
+            'suspended_at' => $this->faker->dateTimeBetween('-1 month', 'now'),
+        ]);
+    }
+
+    /**
+     * Configure the model factory for enterprise plan.
+     */
+    public function enterprise(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'plan' => 'enterprise',
+            'story_limit' => null, // unlimited
+            'asset_limit' => null, // unlimited
+            'api_limit' => null, // unlimited
+        ]);
+    }
+}
