@@ -1,0 +1,135 @@
+# Pre-commit hooks configuration for Headless CMS
+# Install with: pre-commit install
+
+repos:
+  # PHP CS Fixer
+  - repo: local
+    hooks:
+      - id: php-cs-fixer
+        name: PHP CS Fixer
+        entry: ./vendor/bin/php-cs-fixer
+        args: ['fix', '--config=.php-cs-fixer.php', '--verbose', '--diff']
+        language: system
+        files: \.php$
+        exclude: |
+          (?x)^(
+              vendor/.*|
+              storage/.*|
+              bootstrap/cache/.*|
+              node_modules/.*
+          )$
+
+  # PHPStan
+  - repo: local
+    hooks:
+      - id: phpstan
+        name: PHPStan Static Analysis
+        entry: ./vendor/bin/phpstan
+        args: ['analyse', '--memory-limit=1G', '--no-progress']
+        language: system
+        files: \.php$
+        exclude: |
+          (?x)^(
+              vendor/.*|
+              storage/.*|
+              bootstrap/cache/.*|
+              node_modules/.*
+          )$
+
+  # Psalm
+  - repo: local
+    hooks:
+      - id: psalm
+        name: Psalm Static Analysis
+        entry: ./vendor/bin/psalm
+        args: ['--no-cache', '--show-info=false']
+        language: system
+        files: \.php$
+        exclude: |
+          (?x)^(
+              vendor/.*|
+              storage/.*|
+              bootstrap/cache/.*|
+              node_modules/.*
+          )$
+
+  # PHPUnit Tests
+  - repo: local
+    hooks:
+      - id: phpunit
+        name: PHPUnit Tests
+        entry: php
+        args: ['artisan', 'test', '--parallel']
+        language: system
+        files: \.php$
+        exclude: |
+          (?x)^(
+              vendor/.*|
+              storage/.*|
+              bootstrap/cache/.*|
+              node_modules/.*
+          )$
+        pass_filenames: false
+
+  # Laravel specific checks
+  - repo: local
+    hooks:
+      - id: laravel-route-list
+        name: Laravel Route List Check
+        entry: php
+        args: ['artisan', 'route:list', '--compact']
+        language: system
+        files: routes/.*\.php$
+        pass_filenames: false
+
+  # Generic hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: |
+          (?x)^(
+              .*\.md$|
+              .*\.txt$
+          )$
+      - id: end-of-file-fixer
+        exclude: |
+          (?x)^(
+              .*\.md$|
+              .*\.txt$|
+              storage/.*|
+              bootstrap/cache/.*
+          )$
+      - id: check-yaml
+        files: \.ya?ml$
+      - id: check-json
+        files: \.json$
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: destroyed-symlinks
+
+  # Docker and Infrastructure
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        args: ['--ignore', 'DL3008', '--ignore', 'DL3009']
+
+  # Security checks
+  - repo: local
+    hooks:
+      - id: composer-audit
+        name: Composer Security Audit
+        entry: composer
+        args: ['audit', '--no-dev']
+        language: system
+        files: composer\.(json|lock)$
+        pass_filenames: false
+
+# Global configuration
+default_stages: [commit]
+fail_fast: false
+minimum_pre_commit_version: '2.20.0'

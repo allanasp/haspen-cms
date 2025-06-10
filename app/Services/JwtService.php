@@ -1,0 +1,251 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use DateTimeImmutable;
+use Lcobucci\JWT\Configuration;
+use Lcobucci\JWT\Signer\Hmac\Sha256;
+use Lcobucci\JWT\Signer\Key\InMemory;
+use Lcobucci\JWT\Token\Plain;
+use Lcobucci\JWT\Validation\Constraint\IssuedBy;
+use Lcobucci\JWT\Validation\Constraint\PermittedFor;
+use Lcobucci\JWT\Validation\Constraint\RelatedTo;
+use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
+use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
+use Psr\Clock\ClockInterface;
+
+/**
+ * JWT Service for handling JSON Web Token operations
+ */
+class JwtService extends BaseService
+{
+    private Configuration $config;
+    private string $issuer;
+    private string $audience;
+    private int $ttl;
+    private int $refreshTtl;
+
+    public function __construct(ClockInterface $clock = null)
+    {
+        $secret = config('app.jwt_secret', config('app.key'));
+        $this->issuer = config('app.url');
+        $this->audience = config('app.url');
+        $this->ttl = (int) config('app.jwt_ttl', 3600); // 1 hour default
+        $this->refreshTtl = (int) config('app.jwt_refresh_ttl', 1209600); // 2 weeks default
+
+        $this->config = Configuration::forSymmetricSigner(
+            new Sha256(),
+            InMemory::plainText($secret)
+        );
+
+        if ($clock !== null) {
+            $this->config->setClock($clock);
+        }
+    }
+
+    /**
+     * Generate an access token for a user
+     */
+    public function generateAccessToken(int|string $userId, array $claims = []): string
+    {
+        $now = new DateTimeImmutable();
+        
+        $builder = $this->config->builder()
+            ->issuedBy($this->issuer)
+            ->permittedFor($this->audience)
+            ->relatedTo((string) $userId)
+            ->issuedAt($now)
+            ->canOnlyBeUsedAfter($now)
+            ->expiresAt($now->modify("+{$this->ttl} seconds"))
+            ->withClaim('type', 'access');
+
+        // Add custom claims
+        foreach ($claims as $name => $value) {
+            $builder = $builder->withClaim($name, $value);
+        }
+
+        $token = $builder->getToken($this->config->signer(), $this->config->signingKey());
+
+        $this->logInfo('Access token generated', [
+            'user_id' => $userId,
+            'expires_at' => $token->claims()->get('exp')?->format('Y-m-d H:i:s'),
+        ]);
+
+        return $token->toString();
+    }
+
+    /**
+     * Generate a refresh token for a user
+     */
+    public function generateRefreshToken(int|string $userId): string
+    {
+        $now = new DateTimeImmutable();
+        
+        $token = $this->config->builder()
+            ->issuedBy($this->issuer)
+            ->permittedFor($this->audience)
+            ->relatedTo((string) $userId)
+            ->issuedAt($now)
+            ->canOnlyBeUsedAfter($now)
+            ->expiresAt($now->modify("+{$this->refreshTtl} seconds"))
+            ->withClaim('type', 'refresh')
+            ->getToken($this->config->signer(), $this->config->signingKey());
+
+        $this->logInfo('Refresh token generated', [
+            'user_id' => $userId,
+            'expires_at' => $token->claims()->get('exp')?->format('Y-m-d H:i:s'),
+        ]);
+
+        return $token->toString();
+    }
+
+    /**
+     * Parse and validate a token
+     */
+    public function parseToken(string $tokenString): Plain
+    {
+        try {
+            $token = $this->config->parser()->parse($tokenString);
+            
+            if (!$token instanceof Plain) {
+                throw new \InvalidArgumentException('Invalid token format');
+            }
+
+            return $token;
+        } catch (\Exception $e) {
+            $this->logError('Failed to parse token', [
+                'error' => $e->getMessage(),
+            ]);
+            throw new \InvalidArgumentException('Invalid token: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Validate a token
+     */
+    public function validateToken(Plain $token): bool
+    {
+        try {
+            $constraints = [
+                new IssuedBy($this->issuer),
+                new PermittedFor($this->audience),
+                new StrictValidAt($this->config->clock()),
+            ];
+
+            $this->config->validator()->assert($token, ...$constraints);
+            
+            return true;
+        } catch (RequiredConstraintsViolated $e) {
+            $this->logWarning('Token validation failed', [
+                'violations' => array_map(fn($violation) => $violation->getMessage(), $e->violations()),
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Get user ID from token
+     */
+    public function getUserId(Plain $token): string
+    {
+        $subject = $token->claims()->get('sub');
+        
+        if ($subject === null) {
+            throw new \InvalidArgumentException('Token does not contain a subject claim');
+        }
+
+        return (string) $subject;
+    }
+
+    /**
+     * Get token type
+     */
+    public function getTokenType(Plain $token): string
+    {
+        $type = $token->claims()->get('type');
+        
+        if ($type === null) {
+            throw new \InvalidArgumentException('Token does not contain a type claim');
+        }
+
+        return (string) $type;
+    }
+
+    /**
+     * Get custom claim from token
+     */
+    public function getClaim(Plain $token, string $name): mixed
+    {
+        return $token->claims()->get($name);
+    }
+
+    /**
+     * Check if token is expired
+     */
+    public function isExpired(Plain $token): bool
+    {
+        $expiresAt = $token->claims()->get('exp');
+        
+        if ($expiresAt === null) {
+            return true;
+        }
+
+        return $expiresAt < new DateTimeImmutable();
+    }
+
+    /**
+     * Get token expiration time
+     */
+    public function getExpirationTime(Plain $token): ?DateTimeImmutable
+    {
+        return $token->claims()->get('exp');
+    }
+
+    /**
+     * Refresh an access token using a refresh token
+     */
+    public function refreshAccessToken(string $refreshTokenString, array $claims = []): array
+    {
+        $refreshToken = $this->parseToken($refreshTokenString);
+        
+        if (!$this->validateToken($refreshToken)) {
+            throw new \InvalidArgumentException('Invalid refresh token');
+        }
+
+        if ($this->getTokenType($refreshToken) !== 'refresh') {
+            throw new \InvalidArgumentException('Token is not a refresh token');
+        }
+
+        $userId = $this->getUserId($refreshToken);
+        
+        $newAccessToken = $this->generateAccessToken($userId, $claims);
+        $newRefreshToken = $this->generateRefreshToken($userId);
+
+        $this->logInfo('Tokens refreshed', ['user_id' => $userId]);
+
+        return [
+            'access_token' => $newAccessToken,
+            'refresh_token' => $newRefreshToken,
+            'token_type' => 'Bearer',
+            'expires_in' => $this->ttl,
+        ];
+    }
+
+    /**
+     * Create token pair (access + refresh)
+     */
+    public function createTokenPair(int|string $userId, array $claims = []): array
+    {
+        $accessToken = $this->generateAccessToken($userId, $claims);
+        $refreshToken = $this->generateRefreshToken($userId);
+
+        return [
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
+            'token_type' => 'Bearer',
+            'expires_in' => $this->ttl,
+        ];
+    }
+}

@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<psalm
+    errorLevel="2"
+    resolveFromConfigFile="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+    phpVersion="8.3"
+    findUnusedBaselineEntry="true"
+    findUnusedCode="true"
+>
+    <projectFiles>
+        <directory name="app" />
+        <directory name="config" />
+        <directory name="database" />
+        <directory name="routes" />
+        <ignoreFiles>
+            <directory name="vendor" />
+            <directory name="storage" />
+            <directory name="bootstrap" />
+            <directory name="node_modules" />
+            <directory name="public" />
+        </ignoreFiles>
+    </projectFiles>
+
+    <plugins>
+        <pluginClass class="Psalm\LaravelPlugin\Plugin"/>
+    </plugins>
+
+    <issueHandlers>
+        <!-- Laravel-specific suppressions -->
+        <PropertyNotSetInConstructor>
+            <errorLevel type="suppress">
+                <directory name="app/Models" />
+            </errorLevel>
+        </PropertyNotSetInConstructor>
+        
+        <MissingConstructor>
+            <errorLevel type="suppress">
+                <directory name="app/Models" />
+                <directory name="app/Http/Controllers" />
+                <directory name="app/Http/Middleware" />
+                <directory name="app/Http/Requests" />
+                <directory name="app/Http/Resources" />
+            </errorLevel>
+        </MissingConstructor>
+        
+        <UndefinedMagicMethod>
+            <errorLevel type="suppress">
+                <directory name="app/Models" />
+            </errorLevel>
+        </UndefinedMagicMethod>
+        
+        <UndefinedMagicPropertyFetch>
+            <errorLevel type="suppress">
+                <directory name="app/Models" />
+            </errorLevel>
+        </UndefinedMagicPropertyFetch>
+        
+        <UndefinedMagicPropertyAssignment>
+            <errorLevel type="suppress">
+                <directory name="app/Models" />
+            </errorLevel>
+        </UndefinedMagicPropertyAssignment>
+        
+        <!-- Suppress issues with Laravel facades -->
+        <UndefinedClass>
+            <errorLevel type="suppress">
+                <referencedClass name="Illuminate\Support\Facades\*" />
+            </errorLevel>
+        </UndefinedClass>
+        
+        <!-- Allow mixed types in some contexts -->
+        <MixedAssignment>
+            <errorLevel type="info" />
+        </MixedAssignment>
+        
+        <MixedArrayAccess>
+            <errorLevel type="info" />
+        </MixedArrayAccess>
+        
+        <MixedMethodCall>
+            <errorLevel type="info" />
+        </MixedMethodCall>
+    </issueHandlers>
+</psalm>

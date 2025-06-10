@@ -1,0 +1,63 @@
+includes:
+    - ./vendor/phpstan/phpstan-doctrine/extension.neon
+    - ./vendor/phpstan/phpstan-strict-rules/rules.neon
+
+parameters:
+    level: 8
+    paths:
+        - app
+        - config
+        - database
+        - routes
+    
+    # Exclude certain paths
+    excludePaths:
+        - app/Http/Middleware/Authenticate.php
+        - bootstrap
+        - storage
+        - vendor
+    
+    # Laravel specific configuration
+    laravel:
+        providers:
+            - Laravel\Framework\Providers\ArtisanServiceProvider
+            - Laravel\Framework\Providers\AuthServiceProvider
+            - Laravel\Framework\Providers\BroadcastServiceProvider
+            - Laravel\Framework\Providers\BusServiceProvider
+            - Laravel\Framework\Providers\CacheServiceProvider
+            - Laravel\Framework\Providers\ConsoleSupportServiceProvider
+            - Laravel\Framework\Providers\CookieServiceProvider
+            - Laravel\Framework\Providers\DatabaseServiceProvider
+            - Laravel\Framework\Providers\EncryptionServiceProvider
+            - Laravel\Framework\Providers\FilesystemServiceProvider
+            - Laravel\Framework\Providers\FoundationServiceProvider
+            - Laravel\Framework\Providers\HashServiceProvider
+            - Laravel\Framework\Providers\MailServiceProvider
+            - Laravel\Framework\Providers\NotificationServiceProvider
+            - Laravel\Framework\Providers\PaginationServiceProvider
+            - Laravel\Framework\Providers\PipelineServiceProvider
+            - Laravel\Framework\Providers\QueueServiceProvider
+            - Laravel\Framework\Providers\RedisServiceProvider
+            - Laravel\Framework\Providers\RouteServiceProvider
+            - Laravel\Framework\Providers\SessionServiceProvider
+            - Laravel\Framework\Providers\TranslationServiceProvider
+            - Laravel\Framework\Providers\ValidationServiceProvider
+            - Laravel\Framework\Providers\ViewServiceProvider
+    
+    # Ignore common Laravel patterns
+    ignoreErrors:
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.*#'
+        - '#Call to an undefined method Illuminate\\Http\\Request::validate\(\)#'
+        - '#Access to an undefined property App\\Models\\.*::\$.*#'
+        - '#Method App\\Http\\Controllers\\.*Controller::.*\(\) should return .*but returns.*#'
+    
+    # Check function calls with too many arguments
+    checkTooWideReturnTypesInProtectedAndPublicMethods: true
+    checkUninitializedProperties: true
+    checkMissingIterableValueType: false
+    reportUnmatchedIgnoredErrors: false
+    
+    # Additional rules
+    universalObjectCratesClasses:
+        - Illuminate\Http\Request
+        - Illuminate\Support\Collection

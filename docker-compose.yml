@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: headless-cms-app
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+      - node_modules:/var/www/html/node_modules
+    networks:
+      - headless-cms-network
+    depends_on:
+      - db
+      - redis
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=headless_cms
+      - DB_USERNAME=headless_cms
+      - DB_PASSWORD=secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+
+  nginx:
+    image: nginx:alpine
+    container_name: headless-cms-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - headless-cms-network
+    depends_on:
+      - app
+
+  db:
+    image: postgres:16-alpine
+    container_name: headless-cms-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=headless_cms
+      - POSTGRES_USER=headless_cms
+      - POSTGRES_PASSWORD=secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - headless-cms-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: headless-cms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - headless-cms-network
+    command: redis-server --appendonly yes
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: headless-cms-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - headless-cms-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  vendor:
+  node_modules:
+
+networks:
+  headless-cms-network:
+    driver: bridge
