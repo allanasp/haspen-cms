@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -95,15 +96,16 @@ return new class extends Migration
             $table->index(['last_accessed_at']);
             $table->index(['download_count']);
             
-            // GIN indexes for JSONB fields
-            $table->rawIndex('USING GIN (processing_data)', 'assets_processing_data_gin_idx');
-            $table->rawIndex('USING GIN (variants)', 'assets_variants_gin_idx');
-            $table->rawIndex('USING GIN (tags)', 'assets_tags_gin_idx');
-            $table->rawIndex('USING GIN (custom_fields)', 'assets_custom_fields_gin_idx');
-            $table->rawIndex('USING GIN (usage_stats)', 'assets_usage_stats_gin_idx');
-            $table->rawIndex('USING GIN (external_data)', 'assets_external_data_gin_idx');
-            $table->rawIndex('USING GIN (allowed_roles)', 'assets_allowed_roles_gin_idx');
         });
+
+        // Create GIN indexes for JSONB fields
+        DB::statement('CREATE INDEX IF NOT EXISTS assets_processing_data_gin_idx ON assets USING GIN (processing_data)');
+        DB::statement('CREATE INDEX IF NOT EXISTS assets_variants_gin_idx ON assets USING GIN (variants)');
+        DB::statement('CREATE INDEX IF NOT EXISTS assets_tags_gin_idx ON assets USING GIN (tags)');
+        DB::statement('CREATE INDEX IF NOT EXISTS assets_custom_fields_gin_idx ON assets USING GIN (custom_fields)');
+        DB::statement('CREATE INDEX IF NOT EXISTS assets_usage_stats_gin_idx ON assets USING GIN (usage_stats)');
+        DB::statement('CREATE INDEX IF NOT EXISTS assets_external_data_gin_idx ON assets USING GIN (external_data)');
+        DB::statement('CREATE INDEX IF NOT EXISTS assets_allowed_roles_gin_idx ON assets USING GIN (allowed_roles)');
     }
 
     /**

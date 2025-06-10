@@ -12,7 +12,10 @@ RUN apk add --no-cache \
     curl \
     git \
     supervisor \
-    nginx
+    nginx \
+    autoconf \
+    g++ \
+    make
 
 # Install PHP extensions
 RUN docker-php-ext-install \

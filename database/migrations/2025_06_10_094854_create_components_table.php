@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -64,12 +65,13 @@ return new class extends Migration
             $table->index(['is_nestable', 'status']);
             $table->index('version');
             
-            // GIN indexes for JSONB fields
-            $table->rawIndex('USING GIN (schema)', 'components_schema_gin_idx');
-            $table->rawIndex('USING GIN (preview_field)', 'components_preview_field_gin_idx');
-            $table->rawIndex('USING GIN (tabs)', 'components_tabs_gin_idx');
-            $table->rawIndex('USING GIN (allowed_roles)', 'components_allowed_roles_gin_idx');
         });
+
+        // Create GIN indexes for JSONB fields
+        DB::statement('CREATE INDEX IF NOT EXISTS components_schema_gin_idx ON components USING GIN (schema)');
+        DB::statement('CREATE INDEX IF NOT EXISTS components_preview_field_gin_idx ON components USING GIN (preview_field)');
+        DB::statement('CREATE INDEX IF NOT EXISTS components_tabs_gin_idx ON components USING GIN (tabs)');
+        DB::statement('CREATE INDEX IF NOT EXISTS components_allowed_roles_gin_idx ON components USING GIN (allowed_roles)');
     }
 
     /**

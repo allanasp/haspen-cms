@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -40,9 +41,10 @@ return new class extends Migration
             $table->index(['is_system_role', 'is_default']);
             $table->index('priority');
             
-            // GIN index for JSONB permissions
-            $table->rawIndex('USING GIN (permissions)', 'roles_permissions_gin_idx');
         });
+
+        // Create GIN index for JSONB permissions
+        DB::statement('CREATE INDEX IF NOT EXISTS roles_permissions_gin_idx ON roles USING GIN (permissions)');
     }
 
     /**

@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -92,14 +93,15 @@ return new class extends Migration
             $table->index(['path']);
             $table->index(['sort_order']);
             
-            // GIN indexes for JSONB fields
-            $table->rawIndex('USING GIN (content)', 'stories_content_gin_idx');
-            $table->rawIndex('USING GIN (meta_data)', 'stories_meta_data_gin_idx');
-            $table->rawIndex('USING GIN (breadcrumbs)', 'stories_breadcrumbs_gin_idx');
-            $table->rawIndex('USING GIN (translated_languages)', 'stories_translated_languages_gin_idx');
-            $table->rawIndex('USING GIN (allowed_roles)', 'stories_allowed_roles_gin_idx');
-            $table->rawIndex('USING GIN (robots_meta)', 'stories_robots_meta_gin_idx');
         });
+
+        // Create GIN indexes for JSONB fields
+        DB::statement('CREATE INDEX IF NOT EXISTS stories_content_gin_idx ON stories USING GIN (content)');
+        DB::statement('CREATE INDEX IF NOT EXISTS stories_meta_data_gin_idx ON stories USING GIN (meta_data)');
+        DB::statement('CREATE INDEX IF NOT EXISTS stories_breadcrumbs_gin_idx ON stories USING GIN (breadcrumbs)');
+        DB::statement('CREATE INDEX IF NOT EXISTS stories_translated_languages_gin_idx ON stories USING GIN (translated_languages)');
+        DB::statement('CREATE INDEX IF NOT EXISTS stories_allowed_roles_gin_idx ON stories USING GIN (allowed_roles)');
+        DB::statement('CREATE INDEX IF NOT EXISTS stories_robots_meta_gin_idx ON stories USING GIN (robots_meta)');
     }
 
     /**

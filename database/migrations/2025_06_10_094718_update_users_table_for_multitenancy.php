@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -44,11 +45,11 @@ return new class extends Migration
             $table->index(['status', 'last_login_at']);
             $table->index('timezone');
             $table->index('language');
-            
-            // GIN indexes for JSONB fields
-            $table->rawIndex('USING GIN (preferences)', 'users_preferences_gin_idx');
-            $table->rawIndex('USING GIN (metadata)', 'users_metadata_gin_idx');
         });
+
+        // Create GIN indexes for JSONB fields
+        DB::statement('CREATE INDEX IF NOT EXISTS users_preferences_gin_idx ON users USING GIN (preferences)');
+        DB::statement('CREATE INDEX IF NOT EXISTS users_metadata_gin_idx ON users USING GIN (metadata)');
     }
 
     /**

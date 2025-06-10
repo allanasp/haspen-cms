@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -48,11 +49,12 @@ return new class extends Migration
             $table->index('domain');
             $table->index('plan');
             
-            // GIN index for JSONB fields
-            $table->rawIndex('USING GIN (settings)', 'spaces_settings_gin_idx');
-            $table->rawIndex('USING GIN (environments)', 'spaces_environments_gin_idx');
-            $table->rawIndex('USING GIN (languages)', 'spaces_languages_gin_idx');
         });
+
+        // Create GIN indexes for JSONB fields
+        DB::statement('CREATE INDEX spaces_settings_gin_idx ON spaces USING GIN (settings)');
+        DB::statement('CREATE INDEX spaces_environments_gin_idx ON spaces USING GIN (environments)');
+        DB::statement('CREATE INDEX spaces_languages_gin_idx ON spaces USING GIN (languages)');
     }
 
     /**

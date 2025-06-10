@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -73,16 +74,17 @@ return new class extends Migration
             $table->index(['last_synced_at']);
             $table->index(['last_health_check_at']);
             
-            // GIN indexes for JSONB fields
-            $table->rawIndex('USING GIN (config)', 'datasources_config_gin_idx');
-            $table->rawIndex('USING GIN (schema)', 'datasources_schema_gin_idx');
-            $table->rawIndex('USING GIN (mapping)', 'datasources_mapping_gin_idx');
-            $table->rawIndex('USING GIN (auth_config)', 'datasources_auth_config_gin_idx');
-            $table->rawIndex('USING GIN (filters)', 'datasources_filters_gin_idx');
-            $table->rawIndex('USING GIN (transformations)', 'datasources_transformations_gin_idx');
-            $table->rawIndex('USING GIN (sync_status)', 'datasources_sync_status_gin_idx');
-            $table->rawIndex('USING GIN (health_check)', 'datasources_health_check_gin_idx');
         });
+
+        // Create GIN indexes for JSONB fields
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_config_gin_idx ON datasources USING GIN (config)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_schema_gin_idx ON datasources USING GIN (schema)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_mapping_gin_idx ON datasources USING GIN (mapping)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_auth_config_gin_idx ON datasources USING GIN (auth_config)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_filters_gin_idx ON datasources USING GIN (filters)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_transformations_gin_idx ON datasources USING GIN (transformations)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_sync_status_gin_idx ON datasources USING GIN (sync_status)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_health_check_gin_idx ON datasources USING GIN (health_check)');
     }
 
     /**

@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -77,14 +78,15 @@ return new class extends Migration
             $table->index(['last_accessed_at']);
             $table->index(['access_count']);
             
-            // GIN indexes for JSONB fields
-            $table->rawIndex('USING GIN (data)', 'datasource_entries_data_gin_idx');
-            $table->rawIndex('USING GIN (raw_data)', 'datasource_entries_raw_data_gin_idx');
-            $table->rawIndex('USING GIN (computed_fields)', 'datasource_entries_computed_fields_gin_idx');
-            $table->rawIndex('USING GIN (dimensions)', 'datasource_entries_dimensions_gin_idx');
-            $table->rawIndex('USING GIN (processing_errors)', 'datasource_entries_processing_errors_gin_idx');
-            $table->rawIndex('USING GIN (usage_stats)', 'datasource_entries_usage_stats_gin_idx');
         });
+
+        // Create GIN indexes for JSONB fields
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_data_gin_idx ON datasource_entries USING GIN (data)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_raw_data_gin_idx ON datasource_entries USING GIN (raw_data)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_computed_fields_gin_idx ON datasource_entries USING GIN (computed_fields)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_dimensions_gin_idx ON datasource_entries USING GIN (dimensions)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_processing_errors_gin_idx ON datasource_entries USING GIN (processing_errors)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_usage_stats_gin_idx ON datasource_entries USING GIN (usage_stats)');
     }
 
     /**
