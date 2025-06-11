@@ -6,6 +6,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * @psalm-suppress UnusedClass
+ */
 final class AppServiceProvider extends ServiceProvider
 {
     /**

@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
  *
  * Provides UUID functionality for models that need public UUID identifiers.
  * UUIDs are automatically generated on model creation and exposed in API responses.
+ * @psalm-suppress PossiblyUnusedMethod
  */
 trait HasUuid
 {

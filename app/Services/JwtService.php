@@ -14,6 +14,7 @@ use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 
 /**
  * JWT Service for handling JSON Web Token operations.
+ * @psalm-suppress UnusedClass
  */
 final class JwtService extends BaseService
 {
@@ -61,7 +62,7 @@ final class JwtService extends BaseService
         $builder = $this->config->builder()
             ->issuedBy($this->issuer)
             ->permittedFor($this->audience)
-            ->relatedTo((string) $userId)
+            ->relatedTo($userId !== '' ? (string) $userId : '0')
             ->issuedAt($now)
             ->canOnlyBeUsedAfter($now)
             ->expiresAt($now->modify("+{$this->ttl} seconds"))
@@ -101,7 +102,7 @@ final class JwtService extends BaseService
         $token = $this->config->builder()
             ->issuedBy($this->issuer)
             ->permittedFor($this->audience)
-            ->relatedTo((string) $userId)
+            ->relatedTo($userId !== '' ? (string) $userId : '0')
             ->issuedAt($now)
             ->canOnlyBeUsedAfter($now)
             ->expiresAt($now->modify("+{$this->refreshTtl} seconds"))
@@ -181,7 +182,7 @@ final class JwtService extends BaseService
             throw new \InvalidArgumentException('Token does not contain a subject claim');
         }
 
-        return (string) $subject;
+        return $subject;
     }
 
     /**
@@ -196,7 +197,7 @@ final class JwtService extends BaseService
             throw new \InvalidArgumentException('Token does not contain a type claim');
         }
 
-        return (string) $type;
+        return $type;
     }
 
     /**

@@ -19,6 +19,7 @@ use Laravel\Sanctum\HasApiTokens;
  *
  * Represents a user in the multi-tenant headless CMS.
  * Users can belong to multiple spaces with different roles.
+ * @psalm-suppress PossiblyUnusedMethod
  *
  * @property int $id
  * @property string $uuid
@@ -111,29 +112,25 @@ final class User extends Authenticatable
     /**
      * Get all spaces this user belongs to.
      *
-     * @return BelongsToMany<Space, $this>
+     * @return BelongsToMany<Space>
      */
     public function spaces(): BelongsToMany
     {
-        /** @var BelongsToMany<Space, $this> $relation */
-        $relation = $this->belongsToMany(Space::class, 'space_user')
+        return $this->belongsToMany(Space::class, 'space_user')
             ->withPivot(['role_id', 'custom_permissions', 'last_accessed_at'])
             ->withTimestamps();
-        return $relation;
     }
 
     /**
      * Get all roles for this user across all spaces.
      *
-     * @return BelongsToMany<Role, $this>
+     * @return BelongsToMany<Role>
      */
     public function roles(): BelongsToMany
     {
-        /** @var BelongsToMany<Role, $this> $relation */
-        $relation = $this->belongsToMany(Role::class, 'space_user')
+        return $this->belongsToMany(Role::class, 'space_user')
             ->withPivot(['space_id', 'custom_permissions', 'last_accessed_at'])
             ->withTimestamps();
-        return $relation;
     }
 
     /**
@@ -183,9 +180,7 @@ final class User extends Authenticatable
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
-        /** @var \Illuminate\Database\Eloquent\Relations\BelongsToMany<Space, $this> $spacesRelation */
-        $spacesRelation = $this->spaces();
-        return $spacesRelation->where('space_id', $spaceId)->exists();
+        return $this->spaces()->where('space_id', $spaceId)->exists();
     }
 
     /**
@@ -195,20 +190,17 @@ final class User extends Authenticatable
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
-        /** @var \Illuminate\Database\Eloquent\Relations\BelongsToMany<Space, $this> $spacesRelation */
-        $spacesRelation = $this->spaces();
-        $space = $spacesRelation->where('space_id', $spaceId)->first();
+        /** @var Space|null $space */
+        $space = $this->spaces()->where('space_id', $spaceId)->first();
         
         if (!$space) {
             return null;
         }
 
+        /** @var object $pivot */
         $pivot = $space->pivot;
-        if (!$pivot) {
-            return null;
-        }
 
-        /** @var mixed $roleId */
+        /** @var int|null $roleId */
         $roleId = $pivot->getAttribute('role_id');
         if (!$roleId) {
             return null;
@@ -226,20 +218,17 @@ final class User extends Authenticatable
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
-        /** @var \Illuminate\Database\Eloquent\Relations\BelongsToMany<Space, $this> $spacesRelation */
-        $spacesRelation = $this->spaces();
-        $space = $spacesRelation->where('space_id', $spaceId)->first();
+        /** @var Space|null $space */
+        $space = $this->spaces()->where('space_id', $spaceId)->first();
 
         if (!$space) {
             return [];
         }
 
+        /** @var object $pivot */
         $pivot = $space->pivot;
-        if (!$pivot) {
-            return [];
-        }
 
-        /** @var mixed $permissionsData */
+        /** @var array<string, mixed>|null $permissionsData */
         $permissionsData = $pivot->getAttribute('custom_permissions');
         /** @var array<string, mixed> $permissions */
         $permissions = $permissionsData ?? [];

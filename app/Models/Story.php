@@ -20,11 +20,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * Represents content pages/posts in the headless CMS.
  * Stories contain structured content using components (Storyblok-style).
+ * @psalm-suppress PossiblyUnusedMethod
  *
  * @property int $id
  * @property string $uuid
  * @property int $space_id
  * @property int|null $parent_id
+ * @property Story|null $parent
  * @property string $name
  * @property string $slug
  * @property string $full_slug

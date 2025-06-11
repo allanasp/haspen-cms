@@ -11,6 +11,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Base repository class providing common CRUD operations.
+ * @psalm-suppress UnusedClass
  */
 abstract class BaseRepository
 {

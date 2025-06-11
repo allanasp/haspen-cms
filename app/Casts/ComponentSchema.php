@@ -31,6 +31,7 @@ final class ComponentSchema implements CastsAttributes
             throw new \InvalidArgumentException('Expected string value for JSON decoding');
         }
 
+        /** @var mixed $decoded */
         $decoded = json_decode($value, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {

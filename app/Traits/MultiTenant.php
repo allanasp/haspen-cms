@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * Provides multi-tenant functionality by automatically scoping queries to the current space.
  * Ensures data isolation between different tenants (spaces).
+ * @psalm-suppress PossiblyUnusedMethod
  */
 trait MultiTenant
 {

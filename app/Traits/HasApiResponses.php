@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Trait for standardized API responses.
+ * @psalm-suppress PossiblyUnusedMethod
  */
 trait HasApiResponses
 {

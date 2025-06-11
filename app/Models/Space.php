@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * Represents a tenant in the multi-tenant headless CMS.
  * Each space provides complete data isolation and custom configuration.
+ * @psalm-suppress PossiblyUnusedMethod
  *
  * @property int $id
  * @property string $uuid

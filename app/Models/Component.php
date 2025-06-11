@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * Represents reusable content block definitions in the headless CMS.
  * Components define the structure and fields for content blocks (Storyblok-style).
+ * @psalm-suppress PossiblyUnusedMethod
  *
  * @property int $id
  * @property string $uuid

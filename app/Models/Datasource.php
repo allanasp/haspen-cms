@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @mixin \Illuminate\Database\Eloquent\Builder
+ * @psalm-suppress UnusedClass
  */
 final class Datasource extends Model
 {

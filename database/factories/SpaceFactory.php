@@ -45,7 +45,7 @@ public function definition(): array
                     'quality' => $this->faker->numberBetween(70, 95),
                 ],
                 'seo' => [
-                    'default_meta_title' => $name . ' - ' . $this->faker->catchPhrase(),
+                    'default_meta_title' => $name . ' - ' . $this->faker->catchphrase,
                     'default_meta_description' => $this->faker->sentence(20),
                     'robots_default' => 'index,follow',
                     'sitemap_enabled' => true,

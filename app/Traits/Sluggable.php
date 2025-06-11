@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
  *
  * Automatically generates URL-friendly slugs from a source field.
  * Ensures uniqueness within the model scope and handles updates.
+ * @psalm-suppress PossiblyUnusedMethod
  */
 trait Sluggable
 {

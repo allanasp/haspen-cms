@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 /**
  * API Rate Limiting Middleware.
+ * @psalm-suppress UnusedClass
  */
 final class ApiRateLimit
 {
@@ -53,11 +54,13 @@ final class ApiRateLimit
      */
     protected function resolveRequestSignature(Request $request): string
     {
+        /** @var \Illuminate\Contracts\Auth\Authenticatable|null $user */
         $user = $request->user();
         /** @var string|int $userId */
-        $userId = $user?->id ?? 'guest';
+        $userId = $user?->getAuthIdentifier() ?? 'guest';
         $route = $request->route();
-        $routeName = $route !== null ? $route->getName() : null;
+        /** @var \Illuminate\Routing\Route $route */
+        $routeName = $route->getName();
         $routeIdentifier = $routeName ?? $request->path();
 
         return \sprintf(
@@ -104,6 +107,8 @@ final class ApiRateLimit
      */
     protected function calculateRemainingAttempts(string $key, int $maxAttempts): int
     {
-        return max(0, $maxAttempts - $this->limiter->attempts($key));
+        /** @var int $attempts */
+        $attempts = $this->limiter->attempts($key);
+        return max(0, $maxAttempts - $attempts);
     }
 }

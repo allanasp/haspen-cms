@@ -9,6 +9,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Base resource class for consistent API responses.
+ * @psalm-suppress UnusedClass
  */
 final class BaseResource extends JsonResource
 {
@@ -20,15 +21,17 @@ final class BaseResource extends JsonResource
     #[\Override]
     public function toArray(Request $request): array
     {
+        /** @var object $resource */
+        $resource = $this->resource;
         return [
-            'id' => $this->resource->id ?? null,
+            'id' => $resource->id ?? null,
             'created_at' => $this->when(
-                isset($this->resource->created_at),
-                fn () => $this->resource->created_at?->toISOString()
+                isset($resource->created_at),
+                fn () => $resource->created_at?->format('c')
             ),
             'updated_at' => $this->when(
-                isset($this->resource->updated_at),
-                fn () => $this->resource->updated_at?->toISOString()
+                isset($resource->updated_at),
+                fn () => $resource->updated_at?->format('c')
             ),
         ];
     }
@@ -38,9 +41,11 @@ final class BaseResource extends JsonResource
      */
     protected function withTimestamps(): array
     {
+        /** @var object $resource */
+        $resource = $this->resource;
         return [
-            'created_at' => $this->resource->created_at?->toISOString(),
-            'updated_at' => $this->resource->updated_at?->toISOString(),
+            'created_at' => $resource->created_at?->format('c'),
+            'updated_at' => $resource->updated_at?->format('c'),
         ];
     }
 
@@ -49,10 +54,12 @@ final class BaseResource extends JsonResource
      */
     protected function withSoftDeleteTimestamp(): array
     {
+        /** @var object $resource */
+        $resource = $this->resource;
         return [
             'deleted_at' => $this->when(
-                property_exists($this->resource, 'deleted_at') && isset($this->resource->deleted_at),
-                fn () => $this->resource->deleted_at?->toISOString()
+                property_exists($resource, 'deleted_at') && isset($resource->deleted_at),
+                fn () => $resource->deleted_at?->format('c')
             ),
         ];
     }
