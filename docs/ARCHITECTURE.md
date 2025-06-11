@@ -2,555 +2,571 @@
 
 This document provides a detailed technical overview of the headless CMS architecture, designed to help developers understand the system's design principles and implementation details.
 
-## 🏗️ System Overview
+## Table of Contents
+
+- [System Overview](#system-overview)
+- [API Architecture](#api-architecture)
+- [Database Architecture](#database-architecture)
+- [Multi-Tenant Design](#multi-tenant-design)
+- [Security Model](#security-model)
+- [Performance Strategy](#performance-strategy)
+- [Component System](#component-system)
+- [Data Flow](#data-flow)
+
+## System Overview
 
 The headless CMS is built on Laravel 11.x with a focus on:
 
+- **Three-Tier API**: Content Delivery, Management, and Authentication APIs
 - **Multi-tenancy**: Complete data isolation between spaces (tenants)
-- **Component-based content**: Storyblok-style content management
+- **Component-based content**: Storyblok-style content management with JSON schemas
 - **Modern PHP**: PHP 8.3+ with strict typing and advanced features
 - **Performance**: Redis caching, PostgreSQL with JSONB, and optimized queries
-- **Developer Experience**: Comprehensive traits, detailed documentation, and type safety
+- **Developer Experience**: Comprehensive traits, OpenAPI documentation, and type safety
 
-## 📊 Database Architecture
+### High-Level Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │  Admin Panel    │    │  Mobile App     │
+│                 │    │                 │    │                 │
+└─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
+          │                      │                      │
+          │ CDN API              │ Management API       │ CDN API
+          │                      │                      │
+┌─────────▼──────────────────────▼──────────────────────▼───────┐
+│                        API Gateway                            │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
+│  │   CDN API   │  │ Management  │  │  Authentication     │   │
+│  │ (Public)    │  │ API (Auth)  │  │  API                │   │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘   │
+└─────────┬──────────────────────────────────────────────────┘
+          │
+┌─────────▼───────┐    ┌──────────────┐    ┌─────────────────┐
+│   Application   │    │  PostgreSQL  │    │     Redis       │
+│   Layer         │◄──►│   Database   │    │   (Cache/       │
+│                 │    │              │    │   Sessions)     │
+└─────────────────┘    └──────────────┘    └─────────────────┘
+```
+
+## API Architecture
+
+### Three-Tier API Design
+
+The API is organized into three distinct tiers, each with specific purposes and security requirements:
+
+#### 1. Content Delivery API (`/api/v1/cdn/`)
+
+**Purpose**: Public content access for frontend applications
+
+```
+┌─────────────────────────────────────┐
+│           CDN API                   │
+├─────────────────────────────────────┤
+│ • No authentication required       │
+│ • High performance caching          │
+│ • Rate limit: 60 req/min           │
+│ • Public content only              │
+│ • Image transformations            │
+└─────────────────────────────────────┘
+```
+
+**Endpoints:**
+- `GET /stories` - List published stories
+- `GET /stories/{slug}` - Get story by slug
+- `GET /datasources/{slug}` - Get datasource entries
+- `GET /assets/{filename}` - Asset delivery with transformations
+
+#### 2. Management API (`/api/v1/spaces/{space_id}/`)
+
+**Purpose**: Authenticated admin operations for content management
+
+```
+┌─────────────────────────────────────┐
+│         Management API              │
+├─────────────────────────────────────┤
+│ • JWT authentication required      │
+│ • Space-scoped access              │
+│ • Rate limit: 120 req/min          │
+│ • Full CRUD operations             │
+│ • Content validation               │
+└─────────────────────────────────────┘
+```
+
+**Endpoints:**
+- Stories: Create, read, update, delete, publish
+- Components: Schema management and validation
+- Assets: Upload, transform, organize
+- Users: Invite, permissions, roles
+
+#### 3. Authentication API (`/api/v1/auth/`)
+
+**Purpose**: User authentication and token management
+
+```
+┌─────────────────────────────────────┐
+│        Authentication API           │
+├─────────────────────────────────────┤
+│ • JWT token generation             │
+│ • User registration/login          │
+│ • Rate limit: 10 req/min           │
+│ • Password management              │
+│ • Multi-space access               │
+└─────────────────────────────────────┘
+```
+
+### Middleware Stack
+
+```php
+┌─────────────────────┐
+│  Request Logging    │ ← API monitoring and debugging
+├─────────────────────┤
+│  Rate Limiting      │ ← Tiered rate limits by API type
+├─────────────────────┤
+│  CORS Handling      │ ← Cross-origin request management
+├─────────────────────┤
+│  Tenant Isolation  │ ← Space-based data scoping
+├─────────────────────┤
+│  Authentication     │ ← JWT token validation
+├─────────────────────┤
+│  Authorization      │ ← Permission checking
+└─────────────────────┘
+```
+
+## Database Architecture
 
 ### Core Tables
 
 ```sql
 -- Multi-tenant isolation
-spaces (id, uuid, name, slug, settings, environments, languages, plan, status, ...)
+spaces (
+    id, uuid, name, slug, settings, environments, 
+    languages, plan, status, trial_ends_at, 
+    story_limit, asset_limit, api_limit, ...
+)
 
 -- User management with multi-tenant support  
-users (id, uuid, name, email, preferences, metadata, status, timezone, language, ...)
-roles (id, name, slug, permissions, is_system_role, priority, ...)
-space_user (space_id, user_id, role_id, custom_permissions, ...)
+users (
+    id, uuid, name, email, preferences, metadata, 
+    status, timezone, language, two_factor_secret, ...
+)
+
+roles (
+    id, name, slug, permissions, is_system_role, 
+    priority, description, created_at, ...
+)
+
+space_user (
+    space_id, user_id, role_id, custom_permissions,
+    invitation_token, invitation_status, joined_at, ...
+)
 
 -- Content management (Storyblok-style)
-components (id, space_id, uuid, name, technical_name, schema, preview_field, status, ...)
-stories (id, space_id, uuid, name, slug, content, parent_id, language, status, ...)
+components (
+    id, space_id, uuid, name, internal_name, schema,
+    preview_field, preview_tmpl, is_root, is_nestable,
+    icon, color, tabs, status, version, ...
+)
+
+stories (
+    id, space_id, uuid, name, slug, content, parent_id,
+    language, translation_group_id, status, position,
+    published_at, scheduled_at, meta_title, meta_description, ...
+)
 
 -- Asset management
-assets (id, space_id, uuid, filename, content_type, file_size, storage_path, variants, ...)
+assets (
+    id, space_id, uuid, filename, original_filename,
+    content_type, file_size, file_path, file_hash,
+    title, alt, metadata, variants, uploaded_by, ...
+)
 
 -- External data integration
-datasources (id, space_id, uuid, name, type, config, schema, auth_config, ...)
-datasource_entries (id, datasource_id, uuid, name, data, dimensions, status, ...)
+datasources (
+    id, space_id, uuid, name, slug, type, config,
+    schema, auth_config, sync_frequency, last_sync, ...
+)
+
+datasource_entries (
+    id, datasource_id, uuid, name, value, data,
+    dimensions, computed_fields, status, ...
+)
 ```
 
-### JSONB Usage
+### JSONB Usage and Indexing
 
-The system extensively uses PostgreSQL's JSONB columns with GIN indexes for:
+The system extensively uses PostgreSQL's JSONB columns with GIN indexes for optimal performance:
 
 ```sql
 -- Component schemas with field definitions
-components.schema -> GIN index for fast schema queries
+CREATE INDEX idx_components_schema_gin ON components USING gin(schema);
 
--- Story content with component data  
-stories.content -> GIN index for content searches
+-- Story content with component data
+CREATE INDEX idx_stories_content_gin ON stories USING gin(content);
 
--- Asset variants and processing data
-assets.variants, assets.processing_data -> GIN indexes
+-- Space settings and configurations
+CREATE INDEX idx_spaces_settings_gin ON spaces USING gin(settings);
 
--- User preferences and space settings
-users.preferences, spaces.settings -> GIN indexes
+-- User preferences and metadata
+CREATE INDEX idx_users_preferences_gin ON users USING gin(preferences);
 
--- Datasource configuration and data
-datasources.config, datasource_entries.data -> GIN indexes
+-- Asset metadata and variants
+CREATE INDEX idx_assets_metadata_gin ON assets USING gin(metadata);
+
+-- Datasource configurations
+CREATE INDEX idx_datasources_config_gin ON datasources USING gin(config);
+
+-- Entry dimensions for filtering
+CREATE INDEX idx_entries_dimensions_gin ON datasource_entries USING gin(dimensions);
 ```
 
-## 🔧 Model Architecture
+### Row Level Security (RLS) Ready
 
-### Foundational Traits
+The database schema is designed to support PostgreSQL's Row Level Security for enhanced tenant isolation:
 
-#### HasUuid Trait
+```sql
+-- Enable RLS on tenant-scoped tables
+ALTER TABLE stories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE components ENABLE ROW LEVEL SECURITY;
+ALTER TABLE assets ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for space-based access
+CREATE POLICY space_isolation_stories ON stories
+FOR ALL TO application_role
+USING (space_id = current_setting('app.current_space_id')::uuid);
+
+CREATE POLICY space_isolation_components ON components
+FOR ALL TO application_role
+USING (space_id = current_setting('app.current_space_id')::uuid);
+```
+
+## Multi-Tenant Design
+
+### Space-Based Isolation
+
+Every piece of content is scoped to a specific space (tenant):
+
 ```php
-// Provides UUID functionality for public API exposure
-trait HasUuid
-{
-    // Auto-generates UUIDs on model creation
-    // Enables route model binding by UUID
-    // Provides findByUuid() helper methods
-}
-
-// Usage in models
+// Automatic space scoping in models
 class Story extends Model
 {
-    use HasUuid;
+    use MultiTenant;
     
-    // Routes: /api/stories/{story:uuid}
-    // Queries: Story::findByUuid($uuid)
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new SpaceScope);
+    }
 }
+
+// All queries automatically include space_id
+Story::all(); // SELECT * FROM stories WHERE space_id = ?
 ```
 
-#### MultiTenant Trait
+### Space Resolution
+
+The system supports multiple methods for determining the current space context:
+
 ```php
-// Automatic space-based scoping for data isolation
-trait MultiTenant
+class TenantIsolation
 {
-    // Global scope: WHERE space_id = current_space_id
-    // Auto-sets space_id on model creation
-    // Provides space relationship and helper methods
+    private function resolveSpaceIdentifier(Request $request): ?string
+    {
+        // 1. Route parameter (Management API)
+        if ($request->route('space_id')) {
+            return $request->route('space_id');
+        }
+        
+        // 2. Subdomain (CDN API)
+        $host = $request->getHost();
+        if (str_contains($host, '.')) {
+            return explode('.', $host)[0];
+        }
+        
+        // 3. Header-based
+        return $request->header('X-Space-ID');
+    }
 }
-
-// Usage
-$currentSpace = app('current.space'); // Set by middleware
-$stories = Story::all(); // Automatically scoped to current space
-$story = Story::forSpace($otherSpace)->get(); // Override scoping
 ```
 
-#### Sluggable Trait
-```php
-// URL-friendly slug generation with uniqueness
-trait Sluggable
-{
-    // Auto-generates slugs from source field
-    // Ensures uniqueness within scope
-    // Handles updates and conflicts
-}
+### Resource Limits
 
-// Configuration
-protected string $slugSourceField = 'name';
-protected bool $autoUpdateSlug = false; // Manual control
-```
+Each space has configurable resource limits:
 
-#### Cacheable Trait
-```php
-// Model-level caching with automatic invalidation
-trait Cacheable
-{
-    // Cache model data with configurable TTL
-    // Automatic cache invalidation on updates
-    // Model-specific cache clearing
-}
-
-// Usage
-$count = $space->getCached('stories_count', function () {
-    return $this->stories()->count();
-}, 3600); // Cache for 1 hour
-```
-
-### Model Relationships
-
-#### Space (Tenant) Model
 ```php
 class Space extends Model
 {
-    use HasUuid, Sluggable, Cacheable;
+    public function checkResourceLimit(string $resource, int $current): bool
+    {
+        $limit = $this->getResourceLimit($resource);
+        return $current < $limit;
+    }
     
-    // Multi-tenant relationships
-    public function users(): BelongsToMany // via space_user pivot
-    public function stories(): HasMany
-    public function components(): HasMany  
-    public function assets(): HasMany
-    public function datasources(): HasMany
-    
-    // Business logic
-    public function hasReachedStoryLimit(): bool
-    public function supportsLanguage(string $lang): bool
-    public function getEnvironmentConfig(string $env): array
+    public function getResourceLimit(string $resource, int $default = 0): int
+    {
+        return match($resource) {
+            'story_limit' => $this->story_limit,
+            'asset_limit' => $this->asset_limit,
+            'api_limit' => $this->api_limit,
+            default => $default
+        };
+    }
 }
 ```
 
-#### Story (Content) Model
+## Security Model
+
+### JWT Authentication
+
 ```php
-class Story extends Model
+class JwtService
 {
-    use HasUuid, MultiTenant, Sluggable, Cacheable;
-    
-    // Hierarchical content
-    public function parent(): BelongsTo
-    public function children(): HasMany
-    
-    // Multi-language support
-    public function translatedStory(): BelongsTo
-    public function translations(): HasMany
-    
-    // Content management
-    public function getComponentsByType(string $type): array
-    public function publish(?int $publishedBy = null): bool
-    public function generateBreadcrumbs(): array
-}
-```
-
-#### Component (Schema) Model
-```php
-class Component extends Model
-{
-    use HasUuid, MultiTenant, Sluggable, Cacheable;
-    
-    // Schema validation
-    public function validateData(array $data): array
-    public function getRequiredFields(): array
-    public function getFieldsByType(string $type): array
-    
-    // Component management
-    public function incrementVersion(): bool
-    public function canBeUsedBy(?User $user): bool
-}
-```
-
-## 🎨 Content Management System
-
-### Component-Based Architecture
-
-The CMS uses a Storyblok-inspired component system:
-
-```php
-// 1. Define component schema
-$heroSchema = [
-    [
-        'key' => 'title',
-        'type' => 'text',
-        'required' => true,
-        'max_length' => 100,
-    ],
-    [
-        'key' => 'image',
-        'type' => 'asset',
-        'required' => false,
-        'allowed_types' => ['image/jpeg', 'image/png'],
-    ],
-];
-
-// 2. Create component
-$component = Component::create([
-    'name' => 'Hero Section',
-    'technical_name' => 'hero_section',
-    'schema' => $heroSchema,
-    'is_root' => true,
-]);
-
-// 3. Use in story content
-$storyContent = [
-    'component' => 'page',
-    'body' => [
-        [
-            '_uid' => Str::uuid(),
-            'component' => 'hero_section',
-            'title' => 'Welcome to Our Site',
-            'image' => [
-                'id' => 123,
-                'filename' => 'hero.jpg',
-                'alt' => 'Hero image',
-            ],
-        ],
-    ],
-];
-
-// 4. Validate content against schema
-$errors = $component->validateData($storyContent['body'][0]);
-```
-
-### Field Type System
-
-Supported component field types:
-
-```php
-const FIELD_TYPES = [
-    // Text fields
-    'text', 'textarea', 'markdown', 'richtext',
-    
-    // Data types
-    'number', 'boolean', 'date', 'datetime',
-    
-    // Selection
-    'select', 'multiselect',
-    
-    // Media
-    'image', 'file', 'asset',
-    
-    // Links and references
-    'link', 'email', 'url', 'story',
-    
-    // Advanced
-    'color', 'json', 'table', 'blocks',
-];
-```
-
-### Content Validation
-
-Real-time validation against component schemas:
-
-```php
-// Component validates data structure
-public function validateData(array $data): array
-{
-    $errors = [];
-    
-    foreach ($this->schema as $field) {
-        $key = $field['key'];
-        $value = $data[$key] ?? null;
+    public function generateToken(User $user, bool $remember = false): string
+    {
+        $payload = [
+            'sub' => $user->id,
+            'iss' => config('app.url'),
+            'aud' => config('app.url'),
+            'iat' => time(),
+            'exp' => time() + ($remember ? 20160 : 60) * 60, // 2 weeks or 1 hour
+            'spaces' => $user->spaces->pluck('uuid')->toArray()
+        ];
         
-        // Required field validation
-        if (($field['required'] ?? false) && empty($value)) {
-            $errors[$key] = "Field '{$key}' is required";
-            continue;
+        return $this->encodeToken($payload);
+    }
+}
+```
+
+### Permission System
+
+```php
+class Role extends Model
+{
+    protected $casts = [
+        'permissions' => Json::class
+    ];
+    
+    public function hasPermission(string $permission): bool
+    {
+        $permissions = $this->permissions ?? [];
+        
+        // Check exact permission
+        if (in_array($permission, $permissions)) {
+            return true;
         }
         
-        // Type-specific validation
-        $error = $this->validateFieldValue($field, $value);
-        if ($error) {
-            $errors[$key] = $error;
+        // Check wildcard permissions
+        foreach ($permissions as $perm) {
+            if (str_ends_with($perm, '*') && 
+                str_starts_with($permission, rtrim($perm, '*'))) {
+                return true;
+            }
         }
+        
+        return false;
     }
-    
-    return $errors;
 }
 ```
 
-## 🔐 Multi-Tenant Security
-
-### Automatic Scoping
-
-All tenant-scoped models automatically filter by current space:
+### Rate Limiting Strategy
 
 ```php
-// MultiTenant trait adds global scope
-static::addGlobalScope('space', function (Builder $builder): void {
-    $currentSpace = app('current.space');
-    
-    if ($currentSpace instanceof Space) {
-        $builder->where('space_id', $currentSpace->id);
-    }
-});
-
-// Queries are automatically scoped
-Story::all(); // WHERE space_id = current_space_id
-Asset::where('type', 'image')->get(); // WHERE space_id = X AND type = 'image'
-```
-
-### Role-Based Access Control
-
-Hierarchical permission system:
-
-```php
-// Role hierarchy by priority
-const PRIORITIES = [
-    'admin' => 100,
-    'editor' => 75, 
-    'author' => 50,
-    'viewer' => 25,
-];
-
-// Permission checking
-public function hasPermissionInSpace(Space|int $space, string $permission): bool
+class ApiRateLimit
 {
-    $role = $this->getRoleInSpace($space);
-    $customPermissions = $this->getCustomPermissionsInSpace($space);
-    
-    // Custom permissions override role permissions
-    if (isset($customPermissions[$permission])) {
-        return (bool) $customPermissions[$permission];
+    private function getLimit(string $limitType): int
+    {
+        return match ($limitType) {
+            'cdn' => 60,        // Public content access
+            'management' => 120, // Authenticated operations
+            'auth' => 10,       // Security-sensitive operations
+            default => 60
+        };
     }
-    
-    return $role?->hasPermission($permission) ?? false;
 }
 ```
 
-## 🚀 Performance Optimizations
+## Performance Strategy
 
-### Caching Strategy
+### Caching Layers
 
-Multi-level caching with automatic invalidation:
+```
+┌─────────────────────┐
+│   Application Cache │ ← Model-level caching with TTL
+├─────────────────────┤
+│   Query Cache       │ ← Database query result caching
+├─────────────────────┤
+│   Session Cache     │ ← User session and JWT storage
+├─────────────────────┤
+│   Rate Limit Cache  │ ← Request counting and throttling
+└─────────────────────┘
+```
+
+### Model Caching
 
 ```php
-// 1. Model-level caching
-$space->getCached('stories_count', function () {
-    return $this->stories()->count();
-}, 3600);
-
-// 2. Query result caching
-Story::cacheQuery('published_stories', 
-    Story::published()->latest(), 
-    1800
-);
-
-// 3. Automatic cache invalidation
-// Cache is cleared when models are updated
-protected function clearModelSpecificCache(): void
+trait Cacheable
 {
-    $this->forgetCache('stories_count');
-    $this->forgetCache('assets_count');
+    public static function cached(string $key, \Closure $callback, int $ttl = 3600): mixed
+    {
+        return Cache::remember(
+            static::getCacheKey($key),
+            $ttl,
+            $callback
+        );
+    }
+    
+    public function invalidateCache(): void
+    {
+        $pattern = static::getCacheKey('*');
+        Cache::tags([static::class])->flush();
+    }
 }
-```
-
-### Database Optimizations
-
-```sql
--- GIN indexes for JSONB queries
-CREATE INDEX stories_content_gin_idx ON stories USING GIN (content);
-CREATE INDEX components_schema_gin_idx ON components USING GIN (schema);
-
--- Composite indexes for common queries
-CREATE INDEX stories_space_status_idx ON stories (space_id, status);
-CREATE INDEX stories_space_language_idx ON stories (space_id, language);
-
--- Partial indexes for specific use cases
-CREATE INDEX stories_published_idx ON stories (space_id, published_at) 
-WHERE status = 'published';
 ```
 
 ### Query Optimization
 
 ```php
-// Eager loading to prevent N+1 queries
-$stories = Story::with(['space', 'creator', 'parent'])
+// Eager loading relationships
+$stories = Story::with(['space', 'creator', 'translations'])
     ->published()
-    ->latest()
+    ->orderBy('published_at', 'desc')
     ->get();
 
-// Scoped queries with indexes
-$publishedStories = Story::forSpace($space)
-    ->published()
-    ->whereNotNull('published_at')
+// JSONB queries with indexes
+$components = Component::whereJsonContains('schema->title->required', true)
+    ->where('space_id', $spaceId)
     ->get();
+
+// Pagination with counting optimization
+$stories = Story::simplePaginate(25); // Skip total count for performance
 ```
 
-## 🔄 Data Flow
+## Component System
+
+### Schema-Based Validation
+
+```php
+class Component extends Model
+{
+    public function validateData(array $data): bool
+    {
+        foreach ($this->schema as $fieldName => $fieldConfig) {
+            if ($fieldConfig['required'] ?? false) {
+                if (!isset($data[$fieldName]) || empty($data[$fieldName])) {
+                    return false;
+                }
+            }
+            
+            if (isset($data[$fieldName])) {
+                if (!$this->validateFieldType($data[$fieldName], $fieldConfig)) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+}
+```
+
+### Supported Field Types
+
+```php
+private function validateFieldType(mixed $value, array $config): bool
+{
+    return match ($config['type']) {
+        'text' => is_string($value) && strlen($value) <= ($config['max_length'] ?? 255),
+        'textarea' => is_string($value),
+        'richtext' => is_string($value) && $this->validateHtml($value),
+        'number' => is_numeric($value),
+        'boolean' => is_bool($value),
+        'datetime' => $this->validateDateTime($value),
+        'asset' => $this->validateAssetReference($value),
+        'option' => in_array($value, $config['options'] ?? []),
+        'options' => is_array($value) && !array_diff($value, $config['options'] ?? []),
+        'blocks' => is_array($value) && $this->validateBlocks($value),
+        'link' => $this->validateLink($value),
+        'email' => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
+        'url' => filter_var($value, FILTER_VALIDATE_URL) !== false,
+        default => true
+    };
+}
+```
+
+## Data Flow
 
 ### Content Creation Flow
 
-```mermaid
-graph TD
-    A[User Creates Story] --> B[Validate Permissions]
-    B --> C[Set Space Context]
-    C --> D[Validate Content Schema]
-    D --> E[Generate Slug/Path]
-    E --> F[Save to Database]
-    F --> G[Clear Related Cache]
-    G --> H[Return Response]
+```
+1. Component Definition
+   ├─ Admin creates component schema
+   ├─ Schema validation and storage
+   └─ Cache invalidation
+
+2. Story Creation
+   ├─ Content validation against schema
+   ├─ Multi-tenant scoping
+   ├─ Slug uniqueness check
+   └─ Draft storage
+
+3. Publishing Flow
+   ├─ Final content validation
+   ├─ Status change to 'published'
+   ├─ Search index update
+   └─ CDN cache warming
+
+4. Content Delivery
+   ├─ CDN API request
+   ├─ Cache check
+   ├─ Database query (if cache miss)
+   └─ Response transformation
+```
+
+### Asset Processing Flow
+
+```
+1. Upload
+   ├─ File validation (type, size)
+   ├─ Virus scanning (if configured)
+   ├─ Storage (local/S3)
+   └─ Metadata extraction
+
+2. Processing
+   ├─ Image optimization
+   ├─ Variant generation
+   ├─ CDN distribution
+   └─ Database record creation
+
+3. Delivery
+   ├─ Transformation parameters
+   ├─ Cache lookup
+   ├─ On-demand processing
+   └─ Optimized delivery
 ```
 
 ### Multi-Tenant Request Flow
 
-```mermaid
-graph TD
-    A[HTTP Request] --> B[Space Resolution Middleware]
-    B --> C[Set Current Space Context]
-    C --> D[Route to Controller]
-    D --> E[Models Auto-Scoped to Space]
-    E --> F[Business Logic]
-    F --> G[Return JSON Response]
+```
+1. Request Routing
+   ├─ Space identification (subdomain/parameter/header)
+   ├─ Space validation and status check
+   └─ Context setting
+
+2. Authentication (if required)
+   ├─ JWT token validation
+   ├─ User space access verification
+   └─ Permission checking
+
+3. Data Access
+   ├─ Automatic space scoping
+   ├─ Query execution
+   └─ Result filtering
+
+4. Response
+   ├─ Resource transformation
+   ├─ Rate limit headers
+   └─ Logging and monitoring
 ```
 
-## 🧪 Testing Strategy
+---
 
-### Model Testing
-
-```php
-// Test multi-tenant isolation
-public function test_stories_are_scoped_to_space(): void
-{
-    $space1 = Space::factory()->create();
-    $space2 = Space::factory()->create();
-    
-    $story1 = Story::factory()->for($space1)->create();
-    $story2 = Story::factory()->for($space2)->create();
-    
-    app()->instance('current.space', $space1);
-    
-    $this->assertCount(1, Story::all());
-    $this->assertTrue(Story::all()->contains($story1));
-    $this->assertFalse(Story::all()->contains($story2));
-}
-
-// Test component validation
-public function test_component_validates_required_fields(): void
-{
-    $component = Component::factory()->create([
-        'schema' => [
-            ['key' => 'title', 'type' => 'text', 'required' => true],
-        ],
-    ]);
-    
-    $errors = $component->validateData(['title' => '']);
-    
-    $this->assertArrayHasKey('title', $errors);
-    $this->assertStringContains('required', $errors['title']);
-}
-```
-
-## 📈 Monitoring and Observability
-
-### Performance Monitoring
-
-```php
-// Cache hit/miss tracking
-public function getCached(string $key, callable $callback, ?int $ttl = null): mixed
-{
-    $cacheKey = $this->getCacheKey($key);
-    
-    if (Cache::has($cacheKey)) {
-        event(new CacheHit($cacheKey));
-        return Cache::get($cacheKey);
-    }
-    
-    event(new CacheMiss($cacheKey));
-    return Cache::remember($cacheKey, $ttl ?? $this->getCacheTtl(), $callback);
-}
-```
-
-### Health Checks
-
-```php
-// Space health monitoring
-public function getHealthStatus(): array
-{
-    return [
-        'storage_usage' => $this->getStorageUsage(),
-        'story_count' => $this->getStoriesCount(),
-        'active_users' => $this->getActiveUsersCount(),
-        'api_usage' => $this->getApiUsageStats(),
-        'last_activity' => $this->users()->max('last_login_at'),
-    ];
-}
-```
-
-## 🔮 Extension Points
-
-### Custom Field Types
-
-```php
-// Extend component field types
-class CustomComponentSchema extends ComponentSchema
-{
-    protected function validateCustomField(mixed $value, array $field): ?string
-    {
-        // Custom validation logic
-        return null;
-    }
-}
-```
-
-### Custom Caching Strategies
-
-```php
-// Implement custom cache drivers
-class RedisModelCache implements CacheInterface
-{
-    public function remember(string $key, int $ttl, callable $callback): mixed
-    {
-        // Custom caching logic
-    }
-}
-```
-
-### Event System
-
-```php
-// Model events for extensibility
-protected static function boot(): void
-{
-    parent::boot();
-    
-    static::created(function (Story $story) {
-        event(new StoryCreated($story));
-    });
-    
-    static::published(function (Story $story) {
-        event(new StoryPublished($story));
-    });
-}
-```
-
-This architecture provides a solid foundation for a scalable, multi-tenant headless CMS while maintaining developer productivity and code quality.
+For implementation details, see the [Development Guide](DEVELOPMENT.md) and [API Documentation](API.md).

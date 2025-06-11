@@ -1,842 +1,707 @@
 # API Documentation
 
-This document provides comprehensive API documentation for the headless CMS, including endpoint specifications, authentication, and usage examples.
+Complete REST API reference for the Headless CMS. The API follows a three-tier architecture providing public content delivery, authenticated management operations, and user authentication.
 
 ## Table of Contents
 
+- [API Architecture](#api-architecture)
 - [Authentication](#authentication)
-- [Multi-Tenant API Structure](#multi-tenant-api-structure)
-- [Core Endpoints](#core-endpoints)
-- [Response Formats](#response-formats)
-- [Error Handling](#error-handling)
 - [Rate Limiting](#rate-limiting)
-- [SDKs and Examples](#sdks-and-examples)
+- [Content Delivery API](#content-delivery-api)
+- [Management API](#management-api)
+- [Authentication API](#authentication-api)
+- [Error Handling](#error-handling)
+- [Examples](#examples)
 
----
+## API Architecture
+
+### Three-Tier Structure
+
+The API is organized into three distinct tiers:
+
+1. **Content Delivery API** (`/api/v1/cdn/`) - Public content access
+2. **Management API** (`/api/v1/spaces/{space_id}/`) - Admin operations
+3. **Authentication API** (`/api/v1/auth/`) - User authentication
+
+### Base URLs
+
+- **Development**: `http://localhost:8000/api`
+- **Production**: `https://your-domain.com/api`
 
 ## Authentication
 
-The headless CMS uses Laravel Sanctum for API authentication with token-based access control.
+### JWT Tokens
 
-### Getting an API Token
+The API uses JWT (JSON Web Tokens) for authentication. Tokens are obtained through the authentication endpoints and must be included in the `Authorization` header for protected endpoints.
 
-```http
-POST /api/auth/login
-Content-Type: application/json
-
-{
-    "email": "user@example.com",
-    "password": "password"
-}
+```bash
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
 ```
 
-**Response:**
+### Multi-Tenant Access
+
+JWT tokens include space access information. Users can belong to multiple spaces with different roles:
+
 ```json
 {
-    "data": {
-        "user": {
-            "id": "123e4567-e89b-12d3-a456-426614174000",
-            "name": "John Doe",
-            "email": "user@example.com"
-        },
-        "token": "1|abc123def456...",
-        "expires_at": "2024-12-01T00:00:00Z"
-    }
-}
-```
-
-### Using API Tokens
-
-Include the token in the Authorization header:
-
-```http
-Authorization: Bearer 1|abc123def456...
-```
-
-### Space-Based Authentication
-
-Users can have different permissions in different spaces. The API automatically scopes data based on the space context.
-
-```http
-GET /api/spaces/my-blog/stories
-Authorization: Bearer 1|abc123def456...
-```
-
----
-
-## Multi-Tenant API Structure
-
-All content endpoints are scoped to a specific space for multi-tenant isolation.
-
-### URL Structure
-
-```
-/api/spaces/{space}/[endpoint]
-```
-
-Where `{space}` can be:
-- Space slug: `/api/spaces/my-blog/stories`
-- Space UUID: `/api/spaces/123e4567-e89b-12d3-a456-426614174000/stories`
-
-### Space Context
-
-The API automatically sets the space context based on the URL, ensuring all queries are properly scoped.
-
-```http
-# All stories in 'my-blog' space
-GET /api/spaces/my-blog/stories
-
-# All components in 'company-website' space
-GET /api/spaces/company-website/components
-```
-
----
-
-## Core Endpoints
-
-### Spaces
-
-#### List User Spaces
-```http
-GET /api/spaces
-```
-
-**Response:**
-```json
-{
-    "data": [
-        {
-            "id": "123e4567-e89b-12d3-a456-426614174000",
-            "name": "My Blog",
-            "slug": "my-blog",
-            "domain": "blog.example.com",
-            "plan": "pro",
-            "status": "active",
-            "languages": ["en", "fr"],
-            "created_at": "2024-01-01T00:00:00Z"
-        }
+  "user": {
+    "id": "user-uuid",
+    "name": "John Doe",
+    "spaces": [
+      {
+        "id": "space-uuid-1",
+        "name": "My Blog",
+        "slug": "my-blog",
+        "role": "admin"
+      },
+      {
+        "id": "space-uuid-2", 
+        "name": "Company Site",
+        "slug": "company-site",
+        "role": "editor"
+      }
     ]
+  }
 }
 ```
 
-#### Get Space Details
-```http
-GET /api/spaces/{space}
+## Rate Limiting
+
+Different API tiers have different rate limits:
+
+| API Tier | Rate Limit | Description |
+|----------|------------|-------------|
+| CDN API | 60 requests/minute | Public content delivery |
+| Management API | 120 requests/minute | Authenticated operations |
+| Authentication API | 10 requests/minute | Security protection |
+
+Rate limit headers are included in responses:
+
+```
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1640995200
 ```
 
-#### Update Space
-```http
-PUT /api/spaces/{space}
-Content-Type: application/json
+## Content Delivery API
 
-{
-    "name": "Updated Blog Name",
-    "description": "A blog about technology and innovation",
-    "settings": {
-        "theme": "dark",
-        "cache_ttl": 7200
-    }
-}
-```
+Public API for accessing published content. No authentication required.
 
 ### Stories
 
-#### List Stories
+#### List Published Stories
+
 ```http
-GET /api/spaces/{space}/stories
+GET /api/v1/cdn/stories
 ```
 
 **Query Parameters:**
-- `status`: Filter by status (`published`, `draft`, `review`)
-- `language`: Filter by language code
-- `parent_id`: Filter by parent story
-- `is_folder`: Filter folders (`true`/`false`)
-- `page`: Pagination page number
-- `per_page`: Items per page (max 100)
 
-```http
-GET /api/spaces/my-blog/stories?status=published&language=en&page=1&per_page=20
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `page` | integer | Page number (default: 1) |
+| `per_page` | integer | Items per page (max: 100, default: 25) |
+| `starts_with` | string | Filter by slug prefix |
+| `by_slugs` | string | Comma-separated list of slugs |
+| `excluding_slugs` | string | Comma-separated list of slugs to exclude |
+| `sort_by` | string | Sort field: `created_at`, `published_at`, `name`, `position` |
+| `sort_order` | string | Sort direction: `asc`, `desc` |
+
+**Example Request:**
+
+```bash
+curl "http://localhost:8000/api/v1/cdn/stories?starts_with=blog/&sort_by=published_at&sort_order=desc"
 ```
 
-**Response:**
+**Example Response:**
+
 ```json
 {
-    "data": [
-        {
-            "id": "456e7890-e89b-12d3-a456-426614174001",
-            "name": "Getting Started with Laravel",
-            "slug": "getting-started-with-laravel",
-            "status": "published",
-            "language": "en",
-            "is_folder": false,
-            "path": "/blog/getting-started-with-laravel",
-            "content": {
-                "component": "page",
-                "body": [...]
-            },
-            "meta_title": "Getting Started with Laravel - My Blog",
-            "meta_description": "Learn the basics of Laravel framework",
-            "published_at": "2024-01-15T10:00:00Z",
-            "created_at": "2024-01-14T15:30:00Z",
-            "updated_at": "2024-01-15T09:45:00Z"
-        }
-    ],
-    "meta": {
-        "current_page": 1,
-        "last_page": 5,
-        "per_page": 20,
-        "total": 87
-    }
-}
-```
-
-#### Get Single Story
-```http
-GET /api/spaces/{space}/stories/{story}
-```
-
-#### Create Story
-```http
-POST /api/spaces/{space}/stories
-Content-Type: application/json
-
-{
-    "name": "New Blog Post",
-    "slug": "new-blog-post",
-    "status": "draft",
-    "language": "en",
-    "content": {
-        "component": "page",
+  "stories": [
+    {
+      "id": "story-uuid",
+      "name": "My Blog Post",
+      "slug": "blog/my-blog-post",
+      "content": {
         "body": [
-            {
-                "_uid": "123e4567-e89b-12d3-a456-426614174000",
-                "component": "hero_section",
-                "title": "Welcome to My New Post",
-                "subtitle": "This is an exciting announcement"
-            }
+          {
+            "_uid": "component-uuid",
+            "component": "hero",
+            "title": "Welcome to My Blog",
+            "description": "This is a sample blog post."
+          }
         ]
-    },
-    "meta_title": "New Blog Post",
-    "meta_description": "An exciting new blog post about...",
-    "parent_id": "parent-story-uuid"
+      },
+      "published_at": "2024-01-15T10:30:00Z",
+      "full_slug": "blog/my-blog-post"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "per_page": 25,
+    "total": 42,
+    "last_page": 2
+  }
 }
 ```
 
-#### Update Story
+#### Get Story by Slug
+
 ```http
-PUT /api/spaces/{space}/stories/{story}
-Content-Type: application/json
-
-{
-    "name": "Updated Post Title",
-    "content": {
-        "component": "page",
-        "body": [...]
-    },
-    "status": "published"
-}
-```
-
-#### Delete Story
-```http
-DELETE /api/spaces/{space}/stories/{story}
-```
-
-#### Publish Story
-```http
-POST /api/spaces/{space}/stories/{story}/publish
-
-{
-    "scheduled_at": "2024-12-01T10:00:00Z" // Optional: schedule for later
-}
-```
-
-#### Unpublish Story
-```http
-POST /api/spaces/{space}/stories/{story}/unpublish
-```
-
-### Components
-
-#### List Components
-```http
-GET /api/spaces/{space}/components
+GET /api/v1/cdn/stories/{slug}
 ```
 
 **Query Parameters:**
-- `status`: Filter by status (`active`, `inactive`, `deprecated`)
-- `is_nestable`: Filter nestable components
-- `is_root`: Filter root-level components
-- `search`: Search by name or technical name
 
-**Response:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `version` | string | Version to retrieve: `draft`, `published` (default: `published`) |
+| `resolve_links` | boolean | Resolve story links in content |
+| `resolve_relations` | string | Comma-separated relations to include |
+
+**Example Request:**
+
+```bash
+curl "http://localhost:8000/api/v1/cdn/stories/homepage?resolve_relations=parent,children"
+```
+
+### Datasources
+
+#### List Datasources
+
+```http
+GET /api/v1/cdn/datasources
+```
+
+**Example Response:**
+
 ```json
 {
-    "data": [
-        {
-            "id": "789e0123-e89b-12d3-a456-426614174002",
-            "name": "Hero Section",
-            "technical_name": "hero_section",
-            "description": "Full-width hero section with image and CTA",
-            "icon": "hero",
-            "color": "#FF6B6B",
-            "is_nestable": false,
-            "is_root": true,
-            "status": "active",
-            "version": 2,
-            "schema": [
-                {
-                    "key": "title",
-                    "type": "text",
-                    "display_name": "Hero Title",
-                    "required": true,
-                    "max_length": 100
-                },
-                {
-                    "key": "subtitle",
-                    "type": "textarea",
-                    "display_name": "Subtitle",
-                    "required": false,
-                    "max_length": 250
-                }
-            ],
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-10T12:00:00Z"
-        }
-    ]
+  "datasources": [
+    {
+      "id": "datasource-uuid",
+      "name": "Products",
+      "slug": "products",
+      "type": "json",
+      "entry_count": 150
+    }
+  ]
 }
 ```
 
-#### Get Single Component
+#### Get Datasource Entries
+
 ```http
-GET /api/spaces/{space}/components/{component}
+GET /api/v1/cdn/datasources/{slug}
 ```
 
-#### Create Component
-```http
-POST /api/spaces/{space}/components
-Content-Type: application/json
+**Query Parameters:**
 
-{
-    "name": "Text Block",
-    "technical_name": "text_block",
-    "description": "Simple text content with formatting options",
-    "icon": "text",
-    "color": "#4A90E2",
-    "is_nestable": true,
-    "is_root": false,
-    "schema": [
-        {
-            "key": "content",
-            "type": "textarea",
-            "display_name": "Content",
-            "required": true,
-            "max_length": 5000
-        },
-        {
-            "key": "alignment",
-            "type": "select",
-            "display_name": "Text Alignment",
-            "required": false,
-            "default_value": "left",
-            "options": [
-                {"label": "Left", "value": "left"},
-                {"label": "Center", "value": "center"},
-                {"label": "Right", "value": "right"}
-            ]
-        }
-    ]
-}
-```
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `page` | integer | Page number |
+| `per_page` | integer | Items per page (max: 100) |
+| `dimension` | string | Filter by dimension |
+| `dimension_value` | string | Filter by dimension value |
+| `search` | string | Search entries by name or value |
 
-#### Update Component
-```http
-PUT /api/spaces/{space}/components/{component}
-```
+**Example Request:**
 
-#### Delete Component
-```http
-DELETE /api/spaces/{space}/components/{component}
+```bash
+curl "http://localhost:8000/api/v1/cdn/datasources/products?dimension=category&dimension_value=electronics"
 ```
 
 ### Assets
 
-#### List Assets
+#### Get Asset with Transformations
+
 ```http
-GET /api/spaces/{space}/assets
+GET /api/v1/cdn/assets/{filename}
 ```
 
 **Query Parameters:**
-- `type`: Filter by content type (`image`, `video`, `document`)
-- `search`: Search by filename
-- `folder`: Filter by folder path
 
-**Response:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `w` | integer | Width for resize (1-4000px) |
+| `h` | integer | Height for resize (1-4000px) |
+| `fit` | string | Resize fit mode: `crop`, `clip`, `scale` |
+| `format` | string | Output format: `webp`, `jpg`, `png` |
+| `quality` | integer | Image quality (1-100) |
+| `focal` | string | Focal point for cropping (x,y coordinates 0-1) |
+
+**Examples:**
+
+```bash
+# Resize and convert to WebP
+curl "http://localhost:8000/api/v1/cdn/assets/hero.jpg?w=800&h=600&format=webp&quality=80"
+
+# Crop with focal point
+curl "http://localhost:8000/api/v1/cdn/assets/hero.jpg?w=400&h=400&fit=crop&focal=0.3,0.7"
+```
+
+#### Get Asset Metadata
+
+```http
+GET /api/v1/cdn/assets/{filename}/info
+```
+
+**Example Response:**
+
 ```json
 {
-    "data": [
-        {
-            "id": "abc12345-e89b-12d3-a456-426614174003",
-            "filename": "hero-image.jpg",
-            "original_filename": "my-hero-image.jpg",
-            "content_type": "image/jpeg",
-            "file_size": 1048576,
-            "storage_path": "/spaces/my-blog/assets/2024/01/hero-image.jpg",
-            "public_url": "https://cdn.example.com/spaces/my-blog/assets/2024/01/hero-image.jpg",
-            "alt_text": "Hero image for blog",
-            "metadata": {
-                "width": 1920,
-                "height": 1080,
-                "exif": {...}
-            },
-            "variants": {
-                "thumbnail": {
-                    "url": "https://cdn.example.com/.../hero-image-thumb.jpg",
-                    "width": 300,
-                    "height": 200
-                },
-                "medium": {
-                    "url": "https://cdn.example.com/.../hero-image-medium.jpg",
-                    "width": 800,
-                    "height": 600
-                }
-            },
-            "created_at": "2024-01-15T14:30:00Z"
-        }
-    ]
+  "asset": {
+    "id": "asset-uuid",
+    "filename": "hero.jpg",
+    "title": "Hero Image",
+    "alt": "Beautiful hero image",
+    "content_type": "image/jpeg",
+    "file_size": 245760,
+    "metadata": {
+      "width": 1920,
+      "height": 1080
+    },
+    "created_at": "2024-01-15T10:30:00Z"
+  }
 }
+```
+
+## Management API
+
+Authenticated API for content management operations. Requires JWT authentication and space access.
+
+### Authentication Required
+
+All management endpoints require authentication:
+
+```bash
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     "http://localhost:8000/api/v1/spaces/{space_id}/stories"
+```
+
+### Stories Management
+
+#### List Stories
+
+```http
+GET /api/v1/spaces/{space_id}/stories
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `page` | integer | Page number |
+| `per_page` | integer | Items per page (max: 100) |
+| `search` | string | Search in story name and slug |
+| `status` | string | Filter by status: `draft`, `in_review`, `published`, `scheduled`, `archived` |
+| `starts_with` | string | Filter by slug prefix |
+
+#### Create Story
+
+```http
+POST /api/v1/spaces/{space_id}/stories
+```
+
+**Request Body:**
+
+```json
+{
+  "story": {
+    "name": "My New Story",
+    "slug": "my-new-story",
+    "content": {
+      "body": [
+        {
+          "_uid": "unique-component-id",
+          "component": "hero",
+          "title": "Welcome",
+          "description": "Hero section content"
+        }
+      ]
+    },
+    "status": "draft",
+    "meta_title": "SEO Title",
+    "meta_description": "SEO description"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "story": {
+    "id": "story-uuid",
+    "name": "My New Story",
+    "slug": "my-new-story",
+    "status": "draft",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+#### Get Story
+
+```http
+GET /api/v1/spaces/{space_id}/stories/{story_id}
+```
+
+#### Update Story
+
+```http
+PUT /api/v1/spaces/{space_id}/stories/{story_id}
+```
+
+**Request Body:**
+
+```json
+{
+  "story": {
+    "name": "Updated Story Name",
+    "status": "published",
+    "publish_at": "2024-01-20T10:00:00Z"
+  }
+}
+```
+
+#### Delete Story
+
+```http
+DELETE /api/v1/spaces/{space_id}/stories/{story_id}
+```
+
+### Components Management
+
+#### List Components
+
+```http
+GET /api/v1/spaces/{space_id}/components
+```
+
+#### Create Component
+
+```http
+POST /api/v1/spaces/{space_id}/components
+```
+
+**Request Body:**
+
+```json
+{
+  "component": {
+    "name": "Hero Section",
+    "internal_name": "hero",
+    "schema": {
+      "title": {
+        "type": "text",
+        "required": true,
+        "description": "Hero title"
+      },
+      "description": {
+        "type": "textarea",
+        "required": false,
+        "description": "Hero description"
+      },
+      "background_image": {
+        "type": "asset",
+        "required": false,
+        "description": "Background image"
+      }
+    },
+    "is_root": true,
+    "is_nestable": false,
+    "preview_field": "title",
+    "icon": "hero",
+    "color": "#3b82f6"
+  }
+}
+```
+
+### Assets Management
+
+#### List Assets
+
+```http
+GET /api/v1/spaces/{space_id}/assets
 ```
 
 #### Upload Asset
-```http
-POST /api/spaces/{space}/assets
-Content-Type: multipart/form-data
 
-file: [binary file data]
-alt_text: "Description of the image"
-folder: "blog/images"
+```http
+POST /api/v1/spaces/{space_id}/assets
 ```
 
-#### Get Single Asset
-```http
-GET /api/spaces/{space}/assets/{asset}
+**Request (multipart/form-data):**
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@/path/to/image.jpg" \
+  -F "title=Hero Image" \
+  -F "alt=Beautiful hero image" \
+  -F "folder=images/heroes" \
+  "http://localhost:8000/api/v1/spaces/{space_id}/assets"
 ```
 
-#### Update Asset
-```http
-PUT /api/spaces/{space}/assets/{asset}
-Content-Type: application/json
+## Authentication API
 
-{
-    "alt_text": "Updated description",
-    "metadata": {
-        "caption": "A beautiful sunset over the mountains"
-    }
-}
+User authentication and token management.
+
+### Register User
+
+```http
+POST /api/v1/auth/register
 ```
 
-#### Delete Asset
-```http
-DELETE /api/spaces/{space}/assets/{asset}
-```
+**Request Body:**
 
-### Users and Roles
-
-#### List Space Users
-```http
-GET /api/spaces/{space}/users
-```
-
-#### Invite User to Space
-```http
-POST /api/spaces/{space}/users/invite
-Content-Type: application/json
-
-{
-    "email": "newuser@example.com",
-    "role": "editor",
-    "custom_permissions": {
-        "publish_stories": false
-    }
-}
-```
-
-#### Update User Role
-```http
-PUT /api/spaces/{space}/users/{user}
-Content-Type: application/json
-
-{
-    "role": "admin",
-    "custom_permissions": {
-        "manage_components": true,
-        "manage_assets": true
-    }
-}
-```
-
-#### Remove User from Space
-```http
-DELETE /api/spaces/{space}/users/{user}
-```
-
----
-
-## Response Formats
-
-### Success Response
 ```json
 {
-    "data": {
-        // Resource data or array of resources
-    },
-    "meta": {
-        // Pagination or additional metadata (when applicable)
-        "current_page": 1,
-        "last_page": 10,
-        "per_page": 20,
-        "total": 187
-    }
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "password_confirmation": "password123"
 }
-```
-
-### Error Response
-```json
-{
-    "error": {
-        "message": "The given data was invalid.",
-        "type": "validation_error",
-        "code": 422,
-        "details": {
-            "name": ["The name field is required."],
-            "email": ["The email must be a valid email address."]
-        }
-    }
-}
-```
-
-### Resource Relationships
-
-Include related resources using the `include` parameter:
-
-```http
-GET /api/spaces/{space}/stories?include=creator,translations,parent
 ```
 
 **Response:**
+
 ```json
 {
-    "data": [
-        {
-            "id": "...",
-            "name": "My Story",
-            "creator": {
-                "id": "...",
-                "name": "John Doe",
-                "email": "john@example.com"
-            },
-            "translations": [
-                {
-                    "id": "...",
-                    "language": "fr",
-                    "name": "Mon Histoire"
-                }
-            ],
-            "parent": {
-                "id": "...",
-                "name": "Parent Folder",
-                "is_folder": true
-            }
-        }
-    ]
+  "user": {
+    "id": "user-uuid",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "created_at": "2024-01-15T10:30:00Z"
+  },
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "expires_at": "2024-01-15T22:30:00Z"
 }
 ```
 
----
+### Login User
+
+```http
+POST /api/v1/auth/login
+```
+
+**Request Body:**
+
+```json
+{
+  "email": "john@example.com",
+  "password": "password123",
+  "remember": false
+}
+```
+
+### Get Current User
+
+```http
+GET /api/v1/auth/me
+```
+
+**Headers:**
+```
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+### Refresh Token
+
+```http
+POST /api/v1/auth/refresh
+```
+
+### Logout
+
+```http
+POST /api/v1/auth/logout
+```
+
+### Forgot Password
+
+```http
+POST /api/v1/auth/forgot-password
+```
+
+**Request Body:**
+
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+### Reset Password
+
+```http
+POST /api/v1/auth/reset-password
+```
+
+**Request Body:**
+
+```json
+{
+  "email": "john@example.com",
+  "password": "newpassword123",
+  "password_confirmation": "newpassword123",
+  "token": "reset-token-here"
+}
+```
 
 ## Error Handling
 
-### HTTP Status Codes
+The API uses standard HTTP status codes and returns consistent error responses:
 
-- `200 OK`: Successful GET, PUT requests
-- `201 Created`: Successful POST requests
-- `204 No Content`: Successful DELETE requests
-- `400 Bad Request`: Invalid request format
-- `401 Unauthorized`: Missing or invalid authentication
-- `403 Forbidden`: Insufficient permissions
-- `404 Not Found`: Resource not found
-- `409 Conflict`: Resource conflict (e.g., duplicate slug)
-- `422 Unprocessable Entity`: Validation errors
-- `429 Too Many Requests`: Rate limit exceeded
-- `500 Internal Server Error`: Server error
-
-### Error Types
-
-#### Validation Errors
-```json
-{
-    "error": {
-        "message": "The given data was invalid.",
-        "type": "validation_error",
-        "code": 422,
-        "details": {
-            "name": ["The name field is required."],
-            "schema": ["Invalid field type: invalid_type"]
-        }
-    }
-}
-```
-
-#### Authentication Errors
-```json
-{
-    "error": {
-        "message": "Unauthenticated.",
-        "type": "authentication_error",
-        "code": 401
-    }
-}
-```
-
-#### Permission Errors
-```json
-{
-    "error": {
-        "message": "Insufficient permissions to perform this action.",
-        "type": "permission_error",
-        "code": 403,
-        "details": {
-            "required_permission": "publish_stories",
-            "user_role": "author"
-        }
-    }
-}
-```
-
-#### Resource Not Found
-```json
-{
-    "error": {
-        "message": "Story not found.",
-        "type": "not_found_error",
-        "code": 404,
-        "details": {
-            "resource_type": "story",
-            "resource_id": "invalid-uuid"
-        }
-    }
-}
-```
-
----
-
-## Rate Limiting
-
-The API implements rate limiting to prevent abuse and ensure fair usage.
-
-### Rate Limit Headers
-
-All API responses include rate limit headers:
-
-```http
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 1640995200
-```
-
-### Rate Limit Tiers
-
-- **Free Plan**: 1,000 requests/hour
-- **Pro Plan**: 10,000 requests/hour  
-- **Enterprise Plan**: 100,000 requests/hour
-
-### Rate Limit Exceeded
+### Error Response Format
 
 ```json
 {
-    "error": {
-        "message": "Rate limit exceeded. Try again in 3600 seconds.",
-        "type": "rate_limit_error",
-        "code": 429,
-        "details": {
-            "retry_after": 3600,
-            "limit": 1000,
-            "reset_time": "2024-01-01T15:00:00Z"
-        }
-    }
+  "error": "Error Type",
+  "message": "Human-readable error message",
+  "errors": {
+    "field": ["Specific field validation errors"]
+  }
 }
 ```
 
----
+### Common Status Codes
 
-## SDKs and Examples
+| Status Code | Description |
+|-------------|-------------|
+| 200 | Success |
+| 201 | Created |
+| 204 | No Content |
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 422 | Validation Error |
+| 429 | Rate Limit Exceeded |
+| 500 | Internal Server Error |
 
-### JavaScript/TypeScript SDK
+### Example Error Responses
 
-```javascript
-import { HeadlessCMS } from '@headless-cms/js-sdk';
+**Validation Error (422):**
 
-const cms = new HeadlessCMS({
-    apiUrl: 'https://api.your-cms.com',
-    token: 'your-api-token'
-});
-
-// Get all published stories
-const stories = await cms.stories.list('my-blog', {
-    status: 'published',
-    language: 'en'
-});
-
-// Get single story
-const story = await cms.stories.get('my-blog', 'story-uuid');
-
-// Create new story
-const newStory = await cms.stories.create('my-blog', {
-    name: 'New Post',
-    status: 'draft',
-    content: {
-        component: 'page',
-        body: [...]
-    }
-});
-
-// Update story
-await cms.stories.update('my-blog', 'story-uuid', {
-    status: 'published'
-});
+```json
+{
+  "error": "Validation Error",
+  "message": "The given data was invalid",
+  "errors": {
+    "name": ["The name field is required"],
+    "email": ["The email must be a valid email address"]
+  }
+}
 ```
 
-### PHP SDK
+**Rate Limit Exceeded (429):**
 
-```php
-use HeadlessCMS\SDK\Client;
-
-$cms = new Client([
-    'api_url' => 'https://api.your-cms.com',
-    'token' => 'your-api-token'
-]);
-
-// Get stories
-$stories = $cms->stories()->list('my-blog', [
-    'status' => 'published',
-    'per_page' => 20
-]);
-
-// Create story
-$story = $cms->stories()->create('my-blog', [
-    'name' => 'New Post',
-    'content' => [
-        'component' => 'page',
-        'body' => [...]
-    ]
-]);
-
-// Upload asset
-$asset = $cms->assets()->upload('my-blog', [
-    'file' => fopen('/path/to/image.jpg', 'r'),
-    'alt_text' => 'Description'
-]);
+```json
+{
+  "error": "Rate limit exceeded",
+  "message": "Too many requests. Limit: 60 per 60 seconds.",
+  "retry_after": 45
+}
 ```
 
-### cURL Examples
+## Examples
 
-#### Get Stories
+### Complete Workflow Example
+
+This example demonstrates creating content from scratch:
+
 ```bash
-curl -X GET "https://api.your-cms.com/api/spaces/my-blog/stories?status=published" \
-  -H "Authorization: Bearer your-api-token" \
-  -H "Accept: application/json"
-```
-
-#### Create Story
-```bash
-curl -X POST "https://api.your-cms.com/api/spaces/my-blog/stories" \
-  -H "Authorization: Bearer your-api-token" \
+# 1. Register a user
+curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "New Story",
-    "status": "draft",
-    "content": {
-      "component": "page",
-      "body": []
+    "name": "Content Manager",
+    "email": "manager@example.com",
+    "password": "password123",
+    "password_confirmation": "password123"
+  }'
+
+# Response includes JWT token
+export JWT_TOKEN="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+export SPACE_ID="your-space-uuid"
+
+# 2. Create a component
+curl -X POST http://localhost:8000/api/v1/spaces/$SPACE_ID/components \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "component": {
+      "name": "Article",
+      "internal_name": "article",
+      "schema": {
+        "title": {"type": "text", "required": true},
+        "content": {"type": "richtext", "required": true},
+        "featured_image": {"type": "asset", "required": false}
+      }
     }
   }'
+
+# 3. Upload an image
+curl -X POST http://localhost:8000/api/v1/spaces/$SPACE_ID/assets \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -F "file=@article-image.jpg" \
+  -F "title=Article Featured Image" \
+  -F "alt=Featured image for article"
+
+# 4. Create a story using the component
+curl -X POST http://localhost:8000/api/v1/spaces/$SPACE_ID/stories \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "story": {
+      "name": "My First Article",
+      "content": {
+        "body": [
+          {
+            "_uid": "article-1",
+            "component": "article",
+            "title": "Welcome to Our Blog",
+            "content": "<p>This is the content of our first article.</p>",
+            "featured_image": "article-image.jpg"
+          }
+        ]
+      },
+      "status": "draft"
+    }
+  }'
+
+# 5. Publish the story
+curl -X PUT http://localhost:8000/api/v1/spaces/$SPACE_ID/stories/story-uuid \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "story": {
+      "status": "published"
+    }
+  }'
+
+# 6. Access the published content (no auth required)
+curl http://localhost:8000/api/v1/cdn/stories/my-first-article
 ```
 
-#### Upload Asset
+### Multi-Tenant Space Resolution
+
+The API supports multiple methods for space resolution:
+
 ```bash
-curl -X POST "https://api.your-cms.com/api/spaces/my-blog/assets" \
-  -H "Authorization: Bearer your-api-token" \
-  -F "file=@/path/to/image.jpg" \
-  -F "alt_text=Hero image"
+# Method 1: URL parameter (recommended for management API)
+curl http://localhost:8000/api/v1/spaces/space-uuid/stories
+
+# Method 2: Subdomain (recommended for CDN API)
+curl http://my-site.localhost:8000/api/v1/cdn/stories
+
+# Method 3: Header-based
+curl -H "X-Space-ID: space-uuid" \
+     http://localhost:8000/api/v1/cdn/stories
 ```
 
-### Webhook Integration
+---
 
-Subscribe to real-time events:
-
-```http
-POST /api/spaces/{space}/webhooks
-Content-Type: application/json
-
-{
-    "url": "https://your-app.com/webhooks/cms",
-    "events": ["story.published", "story.unpublished", "asset.uploaded"],
-    "secret": "your-webhook-secret"
-}
-```
-
-**Webhook Payload:**
-```json
-{
-    "event": "story.published",
-    "timestamp": "2024-01-15T10:00:00Z",
-    "space": {
-        "id": "space-uuid",
-        "slug": "my-blog"
-    },
-    "data": {
-        "story": {
-            "id": "story-uuid",
-            "name": "Published Story",
-            "slug": "published-story",
-            "published_at": "2024-01-15T10:00:00Z"
-        }
-    }
-}
-```
-
-### GraphQL API (Optional)
-
-For complex queries, a GraphQL endpoint is available:
-
-```graphql
-query GetSpaceContent($spaceSlug: String!) {
-    space(slug: $spaceSlug) {
-        id
-        name
-        stories(status: PUBLISHED, first: 10) {
-            edges {
-                node {
-                    id
-                    name
-                    slug
-                    content
-                    publishedAt
-                    creator {
-                        name
-                        email
-                    }
-                }
-            }
-        }
-        components {
-            id
-            name
-            technicalName
-            schema
-        }
-    }
-}
-```
-
-This comprehensive API documentation provides everything needed to integrate with the headless CMS, from basic CRUD operations to advanced features like webhooks and GraphQL queries.
+For more advanced usage and integration examples, see the [Development Guide](DEVELOPMENT.md).
