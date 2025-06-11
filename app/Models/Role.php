@@ -33,8 +33,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * 
  * @mixin \Illuminate\Database\Eloquent\Builder
  */
-class Role extends Model
+final class Role extends Model
 {
+    /** @use HasFactory<\Database\Factories\RoleFactory> */
     use HasFactory;
     use HasUuid;
     use SoftDeletes;
@@ -43,7 +44,7 @@ class Role extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
@@ -58,7 +59,7 @@ class Role extends Model
     /**
      * The attributes that should be cast.
      *
-     * @var array<string, string>
+     * @var array<array-key, mixed>
      */
     protected $casts = [
         'permissions' => Json::class,
@@ -69,7 +70,7 @@ class Role extends Model
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<array-key, string>
      */
     protected $hidden = [
         'id',
@@ -83,7 +84,8 @@ class Role extends Model
     /**
      * Available permissions.
      */
-    public const PERMISSIONS = [
+    /** @var array<int, string> */
+    public const array PERMISSIONS = [
         // Space management
         'space.view',
         'space.edit',

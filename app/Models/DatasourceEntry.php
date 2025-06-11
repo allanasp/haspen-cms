@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @mixin \Illuminate\Database\Eloquent\Builder
  */
-class DatasourceEntry extends Model
+final class DatasourceEntry extends Model
 {
     //
 }

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * @mixin \Illuminate\Database\Eloquent\Builder
  */
-class Asset extends Model
+final class Asset extends Model
 {
     //
 }

@@ -162,11 +162,11 @@ final class Story extends Model
     public function generateFullSlug(): string
     {
         $slugs = [$this->slug];
-        $current = $this->parent_id ? $this->parent : null;
+        $current = $this->parent_id !== null ? $this->parent : null;
 
         while ($current instanceof Story) {
             array_unshift($slugs, $current->slug);
-            $current = $current->parent_id ? $current->parent : null;
+            $current = $current->parent_id !== null ? $current->parent : null;
         }
 
         return implode('/', $slugs);
@@ -175,7 +175,7 @@ final class Story extends Model
     /**
      * Generate breadcrumbs array.
      *
-     * @return array<string, mixed>
+     * @return array<int|string, mixed>
      */
     public function generateBreadcrumbs(): array
     {
@@ -189,7 +189,7 @@ final class Story extends Model
                 'name' => $current->name,
                 'slug' => $current->slug,
             ];
-            $current = $current->parent_id ? $current->parent : null;
+            $current = $current->parent_id !== null ? $current->parent : null;
         }
 
         return array_reverse($breadcrumbs);

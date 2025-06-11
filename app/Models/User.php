@@ -48,7 +48,7 @@ final class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
     use Notifiable;
-    /** @use HasApiTokens<User> */
+    /** @use HasApiTokens<\Laravel\Sanctum\PersonalAccessToken> */
     use HasApiTokens;
     use HasUuid;
     use SoftDeletes;
