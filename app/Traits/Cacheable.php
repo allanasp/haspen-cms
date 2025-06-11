@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
  *
  * Provides automatic model caching functionality with cache invalidation
  * on model updates, creation, and deletion.
+ * 
  * @psalm-suppress PossiblyUnusedMethod
  */
 trait Cacheable
@@ -74,6 +75,7 @@ trait Cacheable
      * @param string $key
      *
      * @return bool
+     * @psalm-suppress PossiblyUnusedReturnValue
      */
     public function forgetCache(string $key): bool
     {

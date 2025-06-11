@@ -59,7 +59,6 @@ final class ApiRateLimit
         /** @var string|int $userId */
         $userId = $user?->getAuthIdentifier() ?? 'guest';
         $route = $request->route();
-        /** @var \Illuminate\Routing\Route $route */
         $routeName = $route->getName();
         $routeIdentifier = $routeName ?? $request->path();
 

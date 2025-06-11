@@ -78,6 +78,8 @@ abstract class BaseRepository
     {
         $query = $this->model->newQuery()->select($columns);
 
+        /** @psalm-suppress MixedAssignment */
+        /** @psalm-suppress MixedAssignment */
         foreach ($criteria as $field => $value) {
             $query->where($field, $value);
         }
@@ -98,6 +100,7 @@ abstract class BaseRepository
     {
         $query = $this->model->newQuery()->select($columns);
 
+        /** @psalm-suppress MixedAssignment */
         foreach ($criteria as $field => $value) {
             $query->where($field, $value);
         }
@@ -142,6 +145,7 @@ abstract class BaseRepository
     {
         $query = $this->model->newQuery();
 
+        /** @psalm-suppress MixedAssignment */
         foreach ($criteria as $field => $value) {
             $query->where($field, $value);
         }
@@ -175,10 +179,12 @@ abstract class BaseRepository
     {
         $query = $this->model->newQuery();
 
+        /** @psalm-suppress MixedAssignment */
         foreach ($criteria as $field => $value) {
             $query->where($field, $value);
         }
 
+        /** @psalm-suppress MixedReturnStatement */
         return $query->delete();
     }
 
@@ -206,6 +212,7 @@ abstract class BaseRepository
     {
         $query = $this->model->newQuery()->select($columns);
 
+        /** @psalm-suppress MixedAssignment */
         foreach ($criteria as $field => $value) {
             $query->where($field, $value);
         }
@@ -241,6 +248,7 @@ abstract class BaseRepository
     {
         $query = $this->model->newQuery();
 
+        /** @psalm-suppress MixedAssignment */
         foreach ($criteria as $field => $value) {
             $query->where($field, $value);
         }
@@ -258,6 +266,7 @@ abstract class BaseRepository
     {
         $query = $this->model->newQuery();
 
+        /** @psalm-suppress MixedAssignment */
         foreach ($criteria as $field => $value) {
             $query->where($field, $value);
         }

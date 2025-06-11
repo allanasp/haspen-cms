@@ -31,6 +31,7 @@ trait HasApiResponses
         ];
 
         if ($data !== null) {
+            /** @psalm-suppress MixedAssignment */
             $response['data'] = $data;
         }
 

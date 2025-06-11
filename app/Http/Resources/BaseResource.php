@@ -21,7 +21,7 @@ final class BaseResource extends JsonResource
     #[\Override]
     public function toArray(Request $request): array
     {
-        /** @var object $resource */
+        /** @var object{id?: mixed, created_at?: ?\Illuminate\Support\Carbon, updated_at?: ?\Illuminate\Support\Carbon} $resource */
         $resource = $this->resource;
         return [
             'id' => $resource->id ?? null,
@@ -41,7 +41,7 @@ final class BaseResource extends JsonResource
      */
     protected function withTimestamps(): array
     {
-        /** @var object $resource */
+        /** @var object{created_at?: ?\Illuminate\Support\Carbon, updated_at?: ?\Illuminate\Support\Carbon} $resource */
         $resource = $this->resource;
         return [
             'created_at' => $resource->created_at?->format('c'),
@@ -54,7 +54,7 @@ final class BaseResource extends JsonResource
      */
     protected function withSoftDeleteTimestamp(): array
     {
-        /** @var object $resource */
+        /** @var object{deleted_at?: ?\Illuminate\Support\Carbon} $resource */
         $resource = $this->resource;
         return [
             'deleted_at' => $this->when(

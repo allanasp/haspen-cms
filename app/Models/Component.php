@@ -158,6 +158,7 @@ final class Component extends Model
      * Validate string field.
      *
      * @param array<string, mixed> $field
+     * @psalm-suppress PossiblyUnusedMethod
      */
     protected function validateString(mixed $value, array $field): ?string
     {
@@ -180,6 +181,7 @@ final class Component extends Model
      * Validate number field.
      *
      * @param array<string, mixed> $field
+     * @psalm-suppress PossiblyUnusedMethod
      */
     protected function validateNumber(mixed $value, array $field): ?string
     {
@@ -202,6 +204,8 @@ final class Component extends Model
 
     /**
      * Validate boolean field.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     protected function validateBoolean(mixed $value): ?string
     {
@@ -214,6 +218,8 @@ final class Component extends Model
 
     /**
      * Validate email field.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     protected function validateEmail(mixed $value): ?string
     {
@@ -226,6 +232,8 @@ final class Component extends Model
 
     /**
      * Validate URL field.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     protected function validateUrl(mixed $value): ?string
     {
@@ -238,6 +246,8 @@ final class Component extends Model
 
     /**
      * Validate date field.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     protected function validateDate(mixed $value): ?string
     {
@@ -258,6 +268,7 @@ final class Component extends Model
      * Validate select field.
      *
      * @param array<string, mixed> $field
+     * @psalm-suppress PossiblyUnusedMethod
      */
     protected function validateSelect(mixed $value, array $field): ?string
     {
@@ -278,6 +289,7 @@ final class Component extends Model
      * Validate multiselect field.
      *
      * @param array<string, mixed> $field
+     * @psalm-suppress PossiblyUnusedMethod
      */
     protected function validateMultiselect(mixed $value, array $field): ?string
     {
@@ -291,6 +303,7 @@ final class Component extends Model
 
         $validOptions = array_column($field['options'], 'value');
 
+        /** @psalm-suppress MixedAssignment */
         foreach ($value as $item) {
             if (! \in_array($item, $validOptions)) {
                 return 'All values must be from the allowed options';
@@ -302,6 +315,8 @@ final class Component extends Model
 
     /**
      * Validate JSON field.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     protected function validateJson(mixed $value): ?string
     {

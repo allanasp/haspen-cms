@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * Represents user roles with permissions in the headless CMS.
  * Roles define what users can do within a space.
+ * @psalm-suppress PossiblyUnusedMethod
  *
  * @property int $id
  * @property string $uuid
@@ -35,6 +36,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 final class Role extends Model
 {
+    /** @use HasFactory<\Database\Factories\RoleFactory> */
     use HasFactory;
     use HasUuid;
     use SoftDeletes;

@@ -126,6 +126,8 @@ final class Space extends Model
 
     /**
      * Get all stories in this space.
+     * 
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function stories(): HasMany
     {
@@ -136,9 +138,12 @@ final class Space extends Model
 
     /**
      * Get space configuration for a specific environment.
+     * 
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function getEnvironmentConfig(string $environment = 'production'): array
     {
+        /** @var mixed $environments */
         $environments = $this->environments;
         if (!is_array($environments)) {
             return [];

@@ -152,6 +152,8 @@ final class Story extends Model
 
     /**
      * Get the parent story.
+     * 
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function parent(): BelongsTo
     {
@@ -166,12 +168,10 @@ final class Story extends Model
     public function generateFullSlug(): string
     {
         $slugs = [$this->slug];
-        /** @var Story|null $current */
         $current = $this->parent_id !== null ? $this->parent : null;
 
         while ($current instanceof Story) {
             array_unshift($slugs, $current->slug);
-            /** @var Story|null $current */
             $current = $current->parent_id !== null ? $current->parent : null;
         }
 
@@ -195,7 +195,6 @@ final class Story extends Model
                 'name' => $current->name,
                 'slug' => $current->slug,
             ];
-            /** @var Story|null $current */
             $current = $current->parent_id !== null ? $current->parent : null;
         }
 

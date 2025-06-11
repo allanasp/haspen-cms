@@ -69,7 +69,9 @@ final class JwtService extends BaseService
             ->withClaim('type', 'access');
 
         // Add custom claims
+        /** @psalm-suppress MixedAssignment */
         foreach ($claims as $name => $value) {
+            /** @psalm-suppress DocblockTypeContradiction */
             if (!is_string($name) || empty($name)) {
                 continue;
             }

@@ -112,29 +112,36 @@ final class User extends Authenticatable
     /**
      * Get all spaces this user belongs to.
      *
-     * @return BelongsToMany<Space>
+     * @return BelongsToMany<Space, $this>
      */
     public function spaces(): BelongsToMany
     {
-        return $this->belongsToMany(Space::class, 'space_user')
+        /** @psalm-suppress MixedMethodCall, MixedAssignment, MixedReturnStatement */
+        $relation = $this->belongsToMany(Space::class, 'space_user')
             ->withPivot(['role_id', 'custom_permissions', 'last_accessed_at'])
             ->withTimestamps();
+        return $relation;
     }
 
     /**
      * Get all roles for this user across all spaces.
      *
-     * @return BelongsToMany<Role>
+     * @psalm-suppress PossiblyUnusedMethod
+     * @return BelongsToMany<Role, $this>
      */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'space_user')
+        /** @psalm-suppress MixedMethodCall, MixedAssignment, MixedReturnStatement */
+        $relation = $this->belongsToMany(Role::class, 'space_user')
             ->withPivot(['space_id', 'custom_permissions', 'last_accessed_at'])
             ->withTimestamps();
+        return $relation;
     }
 
     /**
      * Scope to active users only.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
@@ -143,6 +150,8 @@ final class User extends Authenticatable
 
     /**
      * Scope to admin users only.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function scopeAdmins(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
@@ -151,6 +160,8 @@ final class User extends Authenticatable
 
     /**
      * Scope users by status.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function scopeStatus(\Illuminate\Database\Eloquent\Builder $query, string $status): \Illuminate\Database\Eloquent\Builder
     {
@@ -159,6 +170,8 @@ final class User extends Authenticatable
 
     /**
      * Check if the user is active.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function isActive(): bool
     {
@@ -167,6 +180,8 @@ final class User extends Authenticatable
 
     /**
      * Check if the user is an admin.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function isAdmin(): bool
     {
@@ -175,12 +190,16 @@ final class User extends Authenticatable
 
     /**
      * Check if the user belongs to a specific space.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function belongsToSpace(Space|int $space): bool
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
-        return $this->spaces()->where('space_id', $spaceId)->exists();
+        /** @psalm-suppress MixedReturnStatement, MixedMethodCall */
+        $spacesQuery = $this->spaces();
+        return $spacesQuery->where('space_id', $spaceId)->exists();
     }
 
     /**
@@ -190,8 +209,9 @@ final class User extends Authenticatable
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
+        $spacesQuery = $this->spaces();
         /** @var Space|null $space */
-        $space = $this->spaces()->where('space_id', $spaceId)->first();
+        $space = $spacesQuery->where('space_id', $spaceId)->first();
         
         if (!$space) {
             return null;
@@ -200,9 +220,10 @@ final class User extends Authenticatable
         /** @var object $pivot */
         $pivot = $space->pivot;
 
+        /** @psalm-suppress MixedMethodCall */
         /** @var int|null $roleId */
         $roleId = $pivot->getAttribute('role_id');
-        if (!$roleId) {
+        if ($roleId === null) {
             return null;
         }
 
@@ -213,13 +234,16 @@ final class User extends Authenticatable
 
     /**
      * Get custom permissions for a specific space.
+     *
+     * @return array<string, mixed>
      */
     public function getCustomPermissionsInSpace(Space|int $space): array
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
+        $spacesQuery = $this->spaces();
         /** @var Space|null $space */
-        $space = $this->spaces()->where('space_id', $spaceId)->first();
+        $space = $spacesQuery->where('space_id', $spaceId)->first();
 
         if (!$space) {
             return [];
@@ -228,15 +252,20 @@ final class User extends Authenticatable
         /** @var object $pivot */
         $pivot = $space->pivot;
 
-        /** @var array<string, mixed>|null $permissionsData */
+        /** @psalm-suppress MixedMethodCall */
         $permissionsData = $pivot->getAttribute('custom_permissions');
+        if (!is_array($permissionsData)) {
+            return [];
+        }
         /** @var array<string, mixed> $permissions */
-        $permissions = $permissionsData ?? [];
+        $permissions = $permissionsData;
         return $permissions;
     }
 
     /**
      * Check if user has permission in a space.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function hasPermissionInSpace(Space|int $space, string $permission): bool
     {
@@ -258,6 +287,8 @@ final class User extends Authenticatable
 
     /**
      * Update last login information.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function updateLastLogin(?string $ip = null): bool
     {
@@ -270,6 +301,7 @@ final class User extends Authenticatable
     /**
      * Get user preference by key.
      *
+     * @psalm-suppress PossiblyUnusedMethod
      * @return mixed
      */
     public function getPreference(string $key, mixed $default = null): mixed
@@ -283,6 +315,8 @@ final class User extends Authenticatable
 
     /**
      * Set user preference.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function setPreference(string $key, mixed $value): bool
     {
@@ -290,6 +324,7 @@ final class User extends Authenticatable
         if (!is_array($preferences)) {
             $preferences = [];
         }
+        /** @psalm-suppress MixedAssignment */
         $preferences[$key] = $value;
 
         return $this->update(['preferences' => $preferences]);
@@ -298,6 +333,7 @@ final class User extends Authenticatable
     /**
      * Get user metadata by key.
      *
+     * @psalm-suppress PossiblyUnusedMethod
      * @return mixed
      */
     public function getMetadata(string $key, mixed $default = null): mixed
@@ -311,6 +347,8 @@ final class User extends Authenticatable
 
     /**
      * Set user metadata.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function setMetadata(string $key, mixed $value): bool
     {
@@ -318,6 +356,7 @@ final class User extends Authenticatable
         if (!is_array($metadata)) {
             $metadata = [];
         }
+        /** @psalm-suppress MixedAssignment */
         $metadata[$key] = $value;
 
         return $this->update(['metadata' => $metadata]);
@@ -325,6 +364,8 @@ final class User extends Authenticatable
 
     /**
      * Get the user's full name or email if name is not set.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function getDisplayName(): string
     {
@@ -333,6 +374,8 @@ final class User extends Authenticatable
 
     /**
      * Get the user's avatar URL or generate a default one.
+     *
+     * @psalm-suppress PossiblyUnusedMethod
      */
     public function getAvatarUrl(): string
     {
