@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $name
  * @property string $slug
  * @property string|null $description
- * @property array $permissions
+ * @property array<string> $permissions
  * @property bool $is_system_role
  * @property bool $is_default
  * @property int $priority
@@ -41,7 +41,7 @@ class Role extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<string>
+     * @var list<string>
      */
     protected $fillable = [
         'name',
@@ -67,7 +67,7 @@ class Role extends Model
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var array<string>
+     * @var list<string>
      */
     protected $hidden = [
         'id',
@@ -149,7 +149,7 @@ class Role extends Model
     /**
      * Scope to system roles only.
      */
-    public function scopeSystem($query)
+    public function scopeSystem(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('is_system_role', true);
     }
@@ -157,7 +157,7 @@ class Role extends Model
     /**
      * Scope to custom roles only.
      */
-    public function scopeCustom($query)
+    public function scopeCustom(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('is_system_role', false);
     }
@@ -165,7 +165,7 @@ class Role extends Model
     /**
      * Scope to default roles.
      */
-    public function scopeDefault($query)
+    public function scopeDefault(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('is_default', true);
     }
@@ -173,7 +173,7 @@ class Role extends Model
     /**
      * Scope roles by priority.
      */
-    public function scopeByPriority($query)
+    public function scopeByPriority(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->orderBy('priority', 'desc');
     }
@@ -188,6 +188,8 @@ class Role extends Model
 
     /**
      * Check if the role has any of the given permissions.
+     *
+     * @param array<string> $permissions
      */
     public function hasAnyPermission(array $permissions): bool
     {
@@ -196,6 +198,8 @@ class Role extends Model
 
     /**
      * Check if the role has all of the given permissions.
+     *
+     * @param array<string> $permissions
      */
     public function hasAllPermissions(array $permissions): bool
     {
@@ -230,6 +234,8 @@ class Role extends Model
 
     /**
      * Set multiple permissions for the role.
+     *
+     * @param array<string> $permissions
      */
     public function setPermissions(array $permissions): bool
     {
@@ -326,6 +332,8 @@ class Role extends Model
 
     /**
      * Create a system role.
+     *
+     * @param array<string> $permissions
      */
     public static function createSystemRole(string $name, string $slug, array $permissions, int $priority = 50): self
     {

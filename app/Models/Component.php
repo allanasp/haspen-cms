@@ -28,16 +28,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $technical_name
  * @property string|null $description
  * @property string|null $display_name
- * @property array $schema
+ * @property array<string, mixed> $schema
  * @property string|null $icon
  * @property string|null $color
- * @property array|null $preview_field
- * @property array|null $tabs
+ * @property array<string, mixed>|null $preview_field
+ * @property array<string, mixed>|null $tabs
  * @property string $status
  * @property bool $is_nestable
  * @property bool $is_root
  * @property int $version
- * @property array|null $allowed_roles
+ * @property array<string>|null $allowed_roles
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property \Carbon\Carbon $created_at
@@ -56,7 +56,7 @@ class Component extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<string>
+     * @var list<string>
      */
     protected $fillable = [
         'name',
@@ -94,7 +94,7 @@ class Component extends Model
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var array<string>
+     * @var list<string>
      */
     protected $hidden = [
         'id',
@@ -167,7 +167,7 @@ class Component extends Model
     /**
      * Scope to active components only.
      */
-    public function scopeActive($query)
+    public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);
     }
@@ -175,7 +175,7 @@ class Component extends Model
     /**
      * Scope to inactive components.
      */
-    public function scopeInactive($query)
+    public function scopeInactive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('status', self::STATUS_INACTIVE);
     }
@@ -183,7 +183,7 @@ class Component extends Model
     /**
      * Scope to nestable components.
      */
-    public function scopeNestable($query)
+    public function scopeNestable(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('is_nestable', true);
     }
@@ -191,7 +191,7 @@ class Component extends Model
     /**
      * Scope to root components.
      */
-    public function scopeRoot($query)
+    public function scopeRoot(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('is_root', true);
     }
@@ -199,7 +199,7 @@ class Component extends Model
     /**
      * Scope components by version.
      */
-    public function scopeVersion($query, int $version)
+    public function scopeVersion(\Illuminate\Database\Eloquent\Builder $query, int $version): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('version', $version);
     }
@@ -284,6 +284,9 @@ class Component extends Model
 
     /**
      * Validate component data against schema.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, string>
      */
     public function validateData(array $data): array
     {
@@ -317,6 +320,8 @@ class Component extends Model
 
     /**
      * Validate a single field value.
+     *
+     * @param array<string, mixed> $field
      */
     protected function validateFieldValue(array $field, mixed $value): ?string
     {
@@ -338,6 +343,8 @@ class Component extends Model
 
     /**
      * Validate string field.
+     *
+     * @param array<string, mixed> $field
      */
     protected function validateString(mixed $value, array $field): ?string
     {
@@ -358,6 +365,8 @@ class Component extends Model
 
     /**
      * Validate number field.
+     *
+     * @param array<string, mixed> $field
      */
     protected function validateNumber(mixed $value, array $field): ?string
     {
@@ -434,6 +443,8 @@ class Component extends Model
 
     /**
      * Validate select field.
+     *
+     * @param array<string, mixed> $field
      */
     protected function validateSelect(mixed $value, array $field): ?string
     {
@@ -452,6 +463,8 @@ class Component extends Model
 
     /**
      * Validate multiselect field.
+     *
+     * @param array<string, mixed> $field
      */
     protected function validateMultiselect(mixed $value, array $field): ?string
     {
@@ -498,6 +511,8 @@ class Component extends Model
 
     /**
      * Get component preview based on preview field configuration.
+     *
+     * @param array<string, mixed> $data
      */
     public function getPreview(array $data): string
     {

@@ -37,6 +37,9 @@ trait HasApiResponses
     /**
      * Return an error response.
      */
+    /**
+     * @param array<string, mixed> $errors
+     */
     protected function error(
         string $message = 'An error occurred',
         int $status = Response::HTTP_BAD_REQUEST,
@@ -56,6 +59,9 @@ trait HasApiResponses
 
     /**
      * Return a validation error response.
+     */
+    /**
+     * @param array<string, mixed> $errors
      */
     protected function validationError(
         array $errors,
@@ -133,7 +139,7 @@ trait HasApiResponses
     /**
      * Return a paginated response.
      */
-    protected function paginated($data, string $message = 'Success'): JsonResponse
+    protected function paginated(mixed $data, string $message = 'Success'): JsonResponse
     {
         return response()->json([
             'success' => true,

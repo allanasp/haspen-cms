@@ -21,18 +21,22 @@ trait Sluggable
     public static function bootSluggable(): void
     {
         static::creating(function (Model $model): void {
-            $model->generateSlugIfEmpty();
+            if (method_exists($model, 'generateSlugIfEmpty')) {
+                $model->generateSlugIfEmpty();
+            }
         });
 
         static::updating(function (Model $model): void {
-            $model->updateSlugIfNeeded();
+            if (method_exists($model, 'updateSlugIfNeeded')) {
+                $model->updateSlugIfNeeded();
+            }
         });
     }
 
     /**
      * Generate a slug if the current slug is empty.
      */
-    protected function generateSlugIfEmpty(): void
+    public function generateSlugIfEmpty(): void
     {
         if (empty($this->slug)) {
             $this->slug = $this->generateUniqueSlug();
@@ -42,7 +46,7 @@ trait Sluggable
     /**
      * Update slug if the source field has changed and slug should be auto-updated.
      */
-    protected function updateSlugIfNeeded(): void
+    public function updateSlugIfNeeded(): void
     {
         $sourceField = $this->getSlugSourceField();
 
@@ -95,8 +99,8 @@ trait Sluggable
         }
 
         // Apply tenant scoping if model uses multi-tenancy
-        if (method_exists($this, 'scopeForSpace') && property_exists($this, 'space_id')) {
-            $query->where('space_id', $this->space_id);
+        if ($this->getAttribute('space_id')) {
+            $query->where('space_id', $this->getAttribute('space_id'));
         }
 
         return $query->exists();
@@ -156,6 +160,7 @@ trait Sluggable
      */
     public static function findBySlug(string $slug): ?static
     {
+        /** @var static|null */
         return static::where('slug', $slug)->first();
     }
 
@@ -170,6 +175,7 @@ trait Sluggable
      */
     public static function findBySlugOrFail(string $slug): static
     {
+        /** @var static */
         return static::where('slug', $slug)->firstOrFail();
     }
 

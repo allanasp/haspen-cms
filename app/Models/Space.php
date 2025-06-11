@@ -26,10 +26,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $slug
  * @property string|null $domain
  * @property string|null $description
- * @property array|null $settings
- * @property array $environments
+ * @property array<string, mixed>|null $settings
+ * @property array<string, mixed> $environments
  * @property string $default_language
- * @property array $languages
+ * @property array<string> $languages
  * @property string $plan
  * @property int|null $story_limit
  * @property int|null $asset_limit
@@ -52,7 +52,7 @@ class Space extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<string>
+     * @var list<string>
      */
     protected $fillable = [
         'name',
@@ -88,7 +88,7 @@ class Space extends Model
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var array<string>
+     * @var list<string>
      */
     protected $hidden = [
         'id',
@@ -165,7 +165,7 @@ class Space extends Model
     /**
      * Scope to active spaces only.
      */
-    public function scopeActive($query)
+    public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);
     }
@@ -173,7 +173,7 @@ class Space extends Model
     /**
      * Scope to spaces by plan.
      */
-    public function scopePlan($query, string $plan)
+    public function scopePlan(\Illuminate\Database\Eloquent\Builder $query, string $plan): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('plan', $plan);
     }
@@ -181,7 +181,7 @@ class Space extends Model
     /**
      * Scope to spaces by domain.
      */
-    public function scopeDomain($query, string $domain)
+    public function scopeDomain(\Illuminate\Database\Eloquent\Builder $query, string $domain): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('domain', $domain);
     }

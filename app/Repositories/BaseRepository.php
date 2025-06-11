@@ -30,6 +30,9 @@ abstract class BaseRepository
     /**
      * Get all records.
      */
+    /**
+     * @param array<string> $columns
+     */
     public function all(array $columns = ['*']): Collection
     {
         return $this->model->select($columns)->get();
@@ -37,6 +40,9 @@ abstract class BaseRepository
 
     /**
      * Find a record by ID.
+     */
+    /**
+     * @param array<string> $columns
      */
     public function find(int|string $id, array $columns = ['*']): ?Model
     {
@@ -46,6 +52,9 @@ abstract class BaseRepository
     /**
      * Find a record by ID or fail.
      */
+    /**
+     * @param array<string> $columns
+     */
     public function findOrFail(int|string $id, array $columns = ['*']): Model
     {
         return $this->model->select($columns)->findOrFail($id);
@@ -53,6 +62,10 @@ abstract class BaseRepository
 
     /**
      * Find records by criteria.
+     */
+    /**
+     * @param array<string, mixed> $criteria
+     * @param array<string> $columns
      */
     public function findWhere(array $criteria, array $columns = ['*']): Collection
     {
@@ -68,6 +81,10 @@ abstract class BaseRepository
     /**
      * Find first record by criteria.
      */
+    /**
+     * @param array<string, mixed> $criteria
+     * @param array<string> $columns
+     */
     public function findWhereFirst(array $criteria, array $columns = ['*']): ?Model
     {
         $query = $this->model->select($columns);
@@ -82,6 +99,9 @@ abstract class BaseRepository
     /**
      * Create a new record.
      */
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(array $data): Model
     {
         return $this->model->create($data);
@@ -90,6 +110,9 @@ abstract class BaseRepository
     /**
      * Update a record.
      */
+    /**
+     * @param array<string, mixed> $data
+     */
     public function update(Model $model, array $data): bool
     {
         return $model->update($data);
@@ -97,6 +120,10 @@ abstract class BaseRepository
 
     /**
      * Update records by criteria.
+     */
+    /**
+     * @param array<string, mixed> $criteria
+     * @param array<string, mixed> $data
      */
     public function updateWhere(array $criteria, array $data): int
     {
@@ -128,6 +155,9 @@ abstract class BaseRepository
     /**
      * Delete records by criteria.
      */
+    /**
+     * @param array<string, mixed> $criteria
+     */
     public function deleteWhere(array $criteria): int
     {
         $query = $this->model->newQuery();
@@ -142,6 +172,9 @@ abstract class BaseRepository
     /**
      * Get paginated records.
      */
+    /**
+     * @param array<string> $columns
+     */
     public function paginate(int $perPage = 15, array $columns = ['*']): LengthAwarePaginator
     {
         return $this->model->select($columns)->paginate($perPage);
@@ -149,6 +182,10 @@ abstract class BaseRepository
 
     /**
      * Get records with pagination and criteria.
+     */
+    /**
+     * @param array<string, mixed> $criteria
+     * @param array<string> $columns
      */
     public function paginateWhere(array $criteria, int $perPage = 15, array $columns = ['*']): LengthAwarePaginator
     {
@@ -180,6 +217,9 @@ abstract class BaseRepository
     /**
      * Count records by criteria.
      */
+    /**
+     * @param array<string, mixed> $criteria
+     */
     public function countWhere(array $criteria): int
     {
         $query = $this->model->newQuery();
@@ -193,6 +233,9 @@ abstract class BaseRepository
 
     /**
      * Check if record exists.
+     */
+    /**
+     * @param array<string, mixed> $criteria
      */
     public function exists(array $criteria): bool
     {

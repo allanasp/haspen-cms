@@ -21,11 +21,15 @@ trait Cacheable
     public static function bootCacheable(): void
     {
         static::saved(function (Model $model): void {
-            $model->clearCache();
+            if (method_exists($model, 'clearCache')) {
+                $model->clearCache();
+            }
         });
 
         static::deleted(function (Model $model): void {
-            $model->clearCache();
+            if (method_exists($model, 'clearCache')) {
+                $model->clearCache();
+            }
         });
     }
 
@@ -135,7 +139,7 @@ trait Cacheable
      *
      * @param string $pattern
      *
-     * @return array
+     * @return array<string>
      */
     protected function getCacheKeys(string $pattern): array
     {
@@ -156,7 +160,7 @@ trait Cacheable
      *
      * @param string $pattern
      *
-     * @return array
+     * @return array<string>
      */
     protected function getCacheKeysFromRegistry(string $pattern): array
     {
@@ -206,8 +210,8 @@ trait Cacheable
      */
     public static function cacheQuery(string $key, $query, ?int $ttl = null)
     {
-        $model = new static();
-        $cacheKey = 'query:' . class_basename($model) . ':' . $key;
+        $className = class_basename(static::class);
+        $cacheKey = 'query:' . $className . ':' . $key;
         $ttl = $ttl ?? 3600;
 
         return Cache::remember($cacheKey, $ttl, function () use ($query) {
@@ -224,8 +228,8 @@ trait Cacheable
      */
     public static function forgetQueryCache(string $key): bool
     {
-        $model = new static();
-        $cacheKey = 'query:' . class_basename($model) . ':' . $key;
+        $className = class_basename(static::class);
+        $cacheKey = 'query:' . $className . ':' . $key;
 
         return Cache::forget($cacheKey);
     }

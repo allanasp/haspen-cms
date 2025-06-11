@@ -13,6 +13,8 @@ abstract class BaseService
 {
     /**
      * Log an info message with service context.
+     *
+     * @param array<string, mixed> $context
      */
     protected function logInfo(string $message, array $context = []): void
     {
@@ -21,6 +23,8 @@ abstract class BaseService
 
     /**
      * Log an error message with service context.
+     *
+     * @param array<string, mixed> $context
      */
     protected function logError(string $message, array $context = []): void
     {
@@ -29,6 +33,8 @@ abstract class BaseService
 
     /**
      * Log a warning message with service context.
+     *
+     * @param array<string, mixed> $context
      */
     protected function logWarning(string $message, array $context = []): void
     {
@@ -37,6 +43,8 @@ abstract class BaseService
 
     /**
      * Log a debug message with service context.
+     *
+     * @param array<string, mixed> $context
      */
     protected function logDebug(string $message, array $context = []): void
     {

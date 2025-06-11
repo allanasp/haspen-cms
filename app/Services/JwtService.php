@@ -12,7 +12,6 @@ use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\PermittedFor;
 use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
-use Psr\Clock\ClockInterface;
 
 /**
  * JWT Service for handling JSON Web Token operations.
@@ -29,7 +28,7 @@ class JwtService extends BaseService
 
     private int $refreshTtl;
 
-    public function __construct(ClockInterface $clock = null)
+    public function __construct()
     {
         $secret = config('app.jwt_secret', config('app.key'));
         $this->issuer = config('app.url');
@@ -41,14 +40,12 @@ class JwtService extends BaseService
             new Sha256(),
             InMemory::plainText($secret)
         );
-
-        if ($clock !== null) {
-            $this->config->setClock($clock);
-        }
     }
 
     /**
      * Generate an access token for a user.
+     *
+     * @param array<string, mixed> $claims
      */
     public function generateAccessToken(int|string $userId, array $claims = []): string
     {
@@ -134,7 +131,6 @@ class JwtService extends BaseService
             $constraints = [
                 new IssuedBy($this->issuer),
                 new PermittedFor($this->audience),
-                new StrictValidAt($this->config->clock()),
             ];
 
             $this->config->validator()->assert($token, ...$constraints);
@@ -210,6 +206,10 @@ class JwtService extends BaseService
     /**
      * Refresh an access token using a refresh token.
      */
+    /**
+     * @param array<string, mixed> $claims
+     * @return array<string, int|string>
+     */
     public function refreshAccessToken(string $refreshTokenString, array $claims = []): array
     {
         $refreshToken = $this->parseToken($refreshTokenString);
@@ -239,6 +239,10 @@ class JwtService extends BaseService
 
     /**
      * Create token pair (access + refresh).
+     */
+    /**
+     * @param array<string, mixed> $claims
+     * @return array<string, int|string>
      */
     public function createTokenPair(int|string $userId, array $claims = []): array
     {

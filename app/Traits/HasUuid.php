@@ -21,8 +21,8 @@ trait HasUuid
     public static function bootHasUuid(): void
     {
         static::creating(function (Model $model): void {
-            if (empty($model->uuid)) {
-                $model->uuid = (string) Str::uuid();
+            if (empty($model->getAttribute('uuid'))) {
+                $model->setAttribute('uuid', (string) Str::uuid());
             }
         });
     }
@@ -44,6 +44,7 @@ trait HasUuid
      */
     public static function findByUuid(string $uuid): ?static
     {
+        /** @var static|null */
         return static::where('uuid', $uuid)->first();
     }
 
@@ -58,6 +59,7 @@ trait HasUuid
      */
     public static function findByUuidOrFail(string $uuid): static
     {
+        /** @var static */
         return static::where('uuid', $uuid)->firstOrFail();
     }
 

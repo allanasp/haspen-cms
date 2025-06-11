@@ -28,21 +28,21 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $name
  * @property string $slug
  * @property string $full_slug
- * @property array $content
+ * @property array<string, mixed> $content
  * @property string $language
  * @property int|null $translated_story_id
- * @property array $translated_languages
+ * @property array<string> $translated_languages
  * @property string $status
  * @property bool $is_folder
  * @property bool $is_startpage
  * @property int $sort_order
  * @property string|null $path
- * @property array|null $breadcrumbs
- * @property array|null $meta_data
+ * @property array<string, mixed>|null $breadcrumbs
+ * @property array<string, mixed>|null $meta_data
  * @property string|null $meta_title
  * @property string|null $meta_description
- * @property array|null $robots_meta
- * @property array|null $allowed_roles
+ * @property array<string, mixed>|null $robots_meta
+ * @property array<string>|null $allowed_roles
  * @property \Carbon\Carbon|null $published_at
  * @property \Carbon\Carbon|null $unpublished_at
  * @property \Carbon\Carbon|null $scheduled_at
@@ -65,7 +65,7 @@ class Story extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<string>
+     * @var list<string>
      */
     protected $fillable = [
         'parent_id',
@@ -117,7 +117,7 @@ class Story extends Model
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var array<string>
+     * @var list<string>
      */
     protected $hidden = [
         'id',
@@ -204,7 +204,7 @@ class Story extends Model
     /**
      * Scope to published stories only.
      */
-    public function scopePublished($query)
+    public function scopePublished(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('status', self::STATUS_PUBLISHED)
             ->where('published_at', '<=', now());
@@ -213,7 +213,7 @@ class Story extends Model
     /**
      * Scope to draft stories only.
      */
-    public function scopeDraft($query)
+    public function scopeDraft(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('status', self::STATUS_DRAFT);
     }
@@ -221,7 +221,7 @@ class Story extends Model
     /**
      * Scope to scheduled stories.
      */
-    public function scopeScheduled($query)
+    public function scopeScheduled(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('status', self::STATUS_SCHEDULED)
             ->where('scheduled_at', '>', now());
@@ -230,7 +230,7 @@ class Story extends Model
     /**
      * Scope stories by language.
      */
-    public function scopeLanguage($query, string $language)
+    public function scopeLanguage(\Illuminate\Database\Eloquent\Builder $query, string $language): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('language', $language);
     }
@@ -238,7 +238,7 @@ class Story extends Model
     /**
      * Scope to folder stories.
      */
-    public function scopeFolders($query)
+    public function scopeFolders(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('is_folder', true);
     }
@@ -246,7 +246,7 @@ class Story extends Model
     /**
      * Scope to content stories (not folders).
      */
-    public function scopeContent($query)
+    public function scopeContent(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('is_folder', false);
     }
@@ -254,7 +254,7 @@ class Story extends Model
     /**
      * Scope to root level stories.
      */
-    public function scopeRoot($query)
+    public function scopeRoot(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->whereNull('parent_id');
     }
@@ -262,7 +262,7 @@ class Story extends Model
     /**
      * Scope by parent.
      */
-    public function scopeChildren($query, int $parentId)
+    public function scopeChildren(\Illuminate\Database\Eloquent\Builder $query, int $parentId): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('parent_id', $parentId);
     }
@@ -432,7 +432,7 @@ class Story extends Model
      */
     public function getUrl(string $environment = 'production'): string
     {
-        $config = $this->space->getEnvironmentConfig($environment);
+        $config = $this->space instanceof Space ? $this->space->getEnvironmentConfig($environment) : [];
         $baseUrl = $config['base_url'] ?? '';
 
         return rtrim($baseUrl, '/') . $this->path;

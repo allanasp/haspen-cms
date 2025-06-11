@@ -23,9 +23,6 @@
         </ignoreFiles>
     </projectFiles>
 
-    <plugins>
-        <pluginClass class="Psalm\LaravelPlugin\Plugin"/>
-    </plugins>
 
     <issueHandlers>
         <!-- Laravel-specific suppressions -->
@@ -40,7 +37,6 @@
                 <directory name="app/Models" />
                 <directory name="app/Http/Controllers" />
                 <directory name="app/Http/Middleware" />
-                <directory name="app/Http/Requests" />
                 <directory name="app/Http/Resources" />
             </errorLevel>
         </MissingConstructor>

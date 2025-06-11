@@ -33,11 +33,11 @@ trait MultiTenant
 
         // Automatically set space_id when creating models
         static::creating(function (Model $model): void {
-            if (empty($model->space_id)) {
+            if (empty($model->getAttribute('space_id'))) {
                 $currentSpace = app('current.space');
 
                 if ($currentSpace instanceof Space) {
-                    $model->space_id = $currentSpace->id;
+                    $model->setAttribute('space_id', $currentSpace->id);
                 }
             }
         });
@@ -89,7 +89,7 @@ trait MultiTenant
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
-        return $this->space_id === $spaceId;
+        return $this->getAttribute('space_id') === $spaceId;
     }
 
     /**

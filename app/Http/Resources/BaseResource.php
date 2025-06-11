@@ -55,15 +55,20 @@ class BaseResource extends JsonResource
      */
     public function withPaginationMeta(): array
     {
-        return [
-            'meta' => [
-                'current_page' => $this->currentPage(),
-                'last_page' => $this->lastPage(),
-                'per_page' => $this->perPage(),
-                'total' => $this->total(),
-                'from' => $this->firstItem(),
-                'to' => $this->lastItem(),
-            ],
-        ];
+        // Check if resource has pagination methods
+        if (is_object($this->resource) && method_exists($this->resource, 'currentPage')) {
+            return [
+                'meta' => [
+                    'current_page' => $this->resource->currentPage(),
+                    'last_page' => $this->resource->lastPage(),
+                    'per_page' => $this->resource->perPage(),
+                    'total' => $this->resource->total(),
+                    'from' => $this->resource->firstItem(),
+                    'to' => $this->resource->lastItem(),
+                ],
+            ];
+        }
+
+        return ['meta' => []];
     }
 }

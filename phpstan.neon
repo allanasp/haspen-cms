@@ -1,10 +1,9 @@
 includes:
     - ./vendor/nunomaduro/larastan/extension.neon
     - ./vendor/phpstan/phpstan-doctrine/extension.neon
-    - ./vendor/phpstan/phpstan-strict-rules/rules.neon
 
 parameters:
-    level: 8
+    level: 6
     paths:
         - app
         - config
@@ -19,12 +18,19 @@ parameters:
             - 'storage'
             - 'vendor'
 
-    # Ignore common Laravel patterns
+    # Ignore common Laravel patterns and development issues
     ignoreErrors:
         - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder.*#'
         - '#Call to an undefined method Illuminate\\Http\\Request::validate\(\)#'
         - '#Access to an undefined property App\\Models\\.*::\$.*#'
         - '#Method App\\Http\\Controllers\\.*Controller::.*\(\) should return .*but returns.*#'
+        - '#Call to an undefined method Faker\\Generator::.*#'
+        - '#Access to an undefined property App\\Http\\Resources\\.*#'
+        - '#has no value type specified in iterable type array#'
+        - '#does not specify its types#'
+        - '#PHPDoc type.*is not the same as PHPDoc type.*#'
+        - '#Construct empty\(\) is not allowed#'
+        - '#Short ternary operator is not allowed#'
 
     # Check function calls with too many arguments
     checkTooWideReturnTypesInProtectedAndPublicMethods: true

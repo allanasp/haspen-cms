@@ -33,8 +33,8 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string $timezone
  * @property string $language
  * @property string $status
- * @property array|null $preferences
- * @property array|null $metadata
+ * @property array<string, mixed>|null $preferences
+ * @property array<string, mixed>|null $metadata
  * @property \Carbon\Carbon|null $last_login_at
  * @property string|null $last_login_ip
  * @property \Carbon\Carbon $created_at
@@ -53,7 +53,7 @@ class User extends Authenticatable
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<string>
+     * @var list<string>
      */
     protected $fillable = [
         'name',
@@ -70,7 +70,7 @@ class User extends Authenticatable
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var array<string>
+     * @var list<string>
      */
     protected $hidden = [
         'id',
@@ -127,7 +127,7 @@ class User extends Authenticatable
     /**
      * Scope to active users only.
      */
-    public function scopeActive($query)
+    public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('status', self::STATUS_ACTIVE);
     }
@@ -135,7 +135,7 @@ class User extends Authenticatable
     /**
      * Scope to admin users only.
      */
-    public function scopeAdmins($query)
+    public function scopeAdmins(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('is_admin', true);
     }
@@ -143,7 +143,7 @@ class User extends Authenticatable
     /**
      * Scope users by status.
      */
-    public function scopeStatus($query, string $status)
+    public function scopeStatus(\Illuminate\Database\Eloquent\Builder $query, string $status): \Illuminate\Database\Eloquent\Builder
     {
         return $query->where('status', $status);
     }
@@ -181,13 +181,14 @@ class User extends Authenticatable
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
-        $pivot = $this->spaces()->where('space_id', $spaceId)->first()?->pivot;
+        $space = $this->spaces()->where('space_id', $spaceId)->first();
+        $pivot = $space?->pivot;
 
-        if (! $pivot || ! $pivot->role_id) {
+        if (! $pivot || ! $pivot->getAttribute('role_id')) {
             return null;
         }
 
-        return Role::find($pivot->role_id);
+        return Role::find($pivot->getAttribute('role_id'));
     }
 
     /**
@@ -197,9 +198,10 @@ class User extends Authenticatable
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
-        $pivot = $this->spaces()->where('space_id', $spaceId)->first()?->pivot;
+        $space = $this->spaces()->where('space_id', $spaceId)->first();
+        $pivot = $space?->pivot;
 
-        return $pivot?->custom_permissions ?? [];
+        return $pivot?->getAttribute('custom_permissions') ?? [];
     }
 
     /**
