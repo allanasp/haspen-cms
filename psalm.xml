@@ -18,7 +18,6 @@
             <directory name="vendor" />
             <directory name="storage" />
             <directory name="bootstrap" />
-            <directory name="node_modules" />
             <directory name="public" />
         </ignoreFiles>
     </projectFiles>
