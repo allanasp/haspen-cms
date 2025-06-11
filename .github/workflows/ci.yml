@@ -47,7 +47,7 @@ jobs:
         run: php artisan key:generate
 
       - name: Run PHP CS Fixer (dry-run)
-        run: ./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --dry-run --diff --verbose
+        run: timeout 300 ./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --dry-run --diff
 
       - name: Run PHPStan
         run: ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
