@@ -40,14 +40,4 @@ abstract class BaseService
     {
         Log::warning($message, array_merge(['service' => static::class], $context));
     }
-
-    /**
-     * Log a debug message with service context.
-     *
-     * @param array<string, mixed> $context
-     */
-    protected function logDebug(string $message, array $context = []): void
-    {
-        Log::debug($message, array_merge(['service' => static::class], $context));
-    }
 }

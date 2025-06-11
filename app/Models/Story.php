@@ -52,6 +52,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property \Carbon\Carbon|null $deleted_at
+ * 
+ * @mixin \Illuminate\Database\Eloquent\Builder
  */
 class Story extends Model
 {
@@ -146,207 +148,6 @@ class Story extends Model
     public const STATUS_ARCHIVED = 'archived';
 
     /**
-     * Get the parent story.
-     */
-    public function parent(): BelongsTo
-    {
-        return $this->belongsTo(Story::class, 'parent_id');
-    }
-
-    /**
-     * Get child stories.
-     */
-    public function children(): HasMany
-    {
-        return $this->hasMany(Story::class, 'parent_id')->orderBy('sort_order');
-    }
-
-    /**
-     * Get the translated story.
-     */
-    public function translatedStory(): BelongsTo
-    {
-        return $this->belongsTo(Story::class, 'translated_story_id');
-    }
-
-    /**
-     * Get translations of this story.
-     */
-    public function translations(): HasMany
-    {
-        return $this->hasMany(Story::class, 'translated_story_id');
-    }
-
-    /**
-     * Get the user who created this story.
-     */
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
-    /**
-     * Get the user who last updated this story.
-     */
-    public function updater(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'updated_by');
-    }
-
-    /**
-     * Get the user who published this story.
-     */
-    public function publisher(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'published_by');
-    }
-
-    /**
-     * Scope to published stories only.
-     */
-    public function scopePublished(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('status', self::STATUS_PUBLISHED)
-            ->where('published_at', '<=', now());
-    }
-
-    /**
-     * Scope to draft stories only.
-     */
-    public function scopeDraft(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('status', self::STATUS_DRAFT);
-    }
-
-    /**
-     * Scope to scheduled stories.
-     */
-    public function scopeScheduled(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('status', self::STATUS_SCHEDULED)
-            ->where('scheduled_at', '>', now());
-    }
-
-    /**
-     * Scope stories by language.
-     */
-    public function scopeLanguage(\Illuminate\Database\Eloquent\Builder $query, string $language): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('language', $language);
-    }
-
-    /**
-     * Scope to folder stories.
-     */
-    public function scopeFolders(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('is_folder', true);
-    }
-
-    /**
-     * Scope to content stories (not folders).
-     */
-    public function scopeContent(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('is_folder', false);
-    }
-
-    /**
-     * Scope to root level stories.
-     */
-    public function scopeRoot(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->whereNull('parent_id');
-    }
-
-    /**
-     * Scope by parent.
-     */
-    public function scopeChildren(\Illuminate\Database\Eloquent\Builder $query, int $parentId): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('parent_id', $parentId);
-    }
-
-    /**
-     * Check if the story is published.
-     */
-    public function isPublished(): bool
-    {
-        return $this->status === self::STATUS_PUBLISHED &&
-               $this->published_at &&
-               $this->published_at->isPast();
-    }
-
-    /**
-     * Check if the story is a draft.
-     */
-    public function isDraft(): bool
-    {
-        return $this->status === self::STATUS_DRAFT;
-    }
-
-    /**
-     * Check if the story is scheduled.
-     */
-    public function isScheduled(): bool
-    {
-        return $this->status === self::STATUS_SCHEDULED &&
-               $this->scheduled_at &&
-               $this->scheduled_at->isFuture();
-    }
-
-    /**
-     * Check if the story is a folder.
-     */
-    public function isFolder(): bool
-    {
-        return $this->is_folder;
-    }
-
-    /**
-     * Check if the story is the start page.
-     */
-    public function isStartpage(): bool
-    {
-        return $this->is_startpage;
-    }
-
-    /**
-     * Publish the story.
-     */
-    public function publish(?int $publishedBy = null): bool
-    {
-        return $this->update([
-            'status' => self::STATUS_PUBLISHED,
-            'published_at' => now(),
-            'published_by' => $publishedBy,
-        ]);
-    }
-
-    /**
-     * Unpublish the story.
-     */
-    public function unpublish(): bool
-    {
-        return $this->update([
-            'status' => self::STATUS_DRAFT,
-            'unpublished_at' => now(),
-        ]);
-    }
-
-    /**
-     * Schedule the story for publishing.
-     */
-    public function schedule(\Carbon\Carbon $scheduledAt, ?int $publishedBy = null): bool
-    {
-        return $this->update([
-            'status' => self::STATUS_SCHEDULED,
-            'scheduled_at' => $scheduledAt,
-            'published_by' => $publishedBy,
-        ]);
-    }
-
-    /**
      * Generate full slug based on parent hierarchy.
      */
     public function generateFullSlug(): string
@@ -360,17 +161,6 @@ class Story extends Model
         }
 
         return implode('/', $slugs);
-    }
-
-    /**
-     * Update full slug and path.
-     */
-    public function updateFullSlugAndPath(): void
-    {
-        $this->full_slug = $this->generateFullSlug();
-        $this->path = '/' . $this->full_slug;
-        $this->breadcrumbs = $this->generateBreadcrumbs();
-        $this->save();
     }
 
     /**
@@ -394,89 +184,6 @@ class Story extends Model
     }
 
     /**
-     * Get content component by key.
-     */
-    public function getContentComponent(string $key): ?array
-    {
-        return $this->content[$key] ?? null;
-    }
-
-    /**
-     * Get all components of a specific type from content.
-     */
-    public function getComponentsByType(string $componentType): array
-    {
-        $components = [];
-
-        if (isset($this->content['body']) && \is_array($this->content['body'])) {
-            foreach ($this->content['body'] as $component) {
-                if (isset($component['component']) && $component['component'] === $componentType) {
-                    $components[] = $component;
-                }
-            }
-        }
-
-        return $components;
-    }
-
-    /**
-     * Check if story has translation in language.
-     */
-    public function hasTranslation(string $language): bool
-    {
-        return \in_array($language, $this->translated_languages ?? []);
-    }
-
-    /**
-     * Get URL for the story.
-     */
-    public function getUrl(string $environment = 'production'): string
-    {
-        $config = $this->space instanceof Space ? $this->space->getEnvironmentConfig($environment) : [];
-        $baseUrl = $config['base_url'] ?? '';
-
-        return rtrim($baseUrl, '/') . $this->path;
-    }
-
-    /**
-     * Check if user can access this story.
-     */
-    public function canBeAccessedBy(?User $user = null): bool
-    {
-        // Public stories (no role restrictions)
-        if (empty($this->allowed_roles)) {
-            return true;
-        }
-
-        // Require authentication
-        if (! $user) {
-            return false;
-        }
-
-        // Check user role in space
-        $userRole = $user->getRoleInSpace($this->space_id);
-
-        if (! $userRole) {
-            return false;
-        }
-
-        return \in_array($userRole->slug, $this->allowed_roles);
-    }
-
-    /**
-     * Get SEO meta data.
-     */
-    public function getSeoMeta(): array
-    {
-        return [
-            'title' => $this->meta_title ?: $this->name,
-            'description' => $this->meta_description,
-            'robots' => $this->robots_meta ?? ['index' => true, 'follow' => true],
-            'canonical' => $this->getUrl(),
-        ];
-    }
-
-    /**
      * Clear model-specific cache.
      */
     protected function clearModelSpecificCache(): void
@@ -489,6 +196,7 @@ class Story extends Model
     /**
      * Boot the model.
      */
+    #[\Override]
     protected static function boot(): void
     {
         parent::boot();

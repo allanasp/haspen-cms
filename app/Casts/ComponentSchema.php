@@ -17,6 +17,7 @@ class ComponentSchema implements CastsAttributes
      *
      * @param array<string, mixed> $attributes
      */
+    #[\Override]
     public function get(Model $model, string $key, mixed $value, array $attributes): ?array
     {
         if ($value === null) {
@@ -36,8 +37,11 @@ class ComponentSchema implements CastsAttributes
      * Prepare the given value for storage.
      *
      * @param array<string, mixed> $attributes
+     *
+     * @return false|null|string
      */
-    public function set(Model $model, string $key, mixed $value, array $attributes): ?string
+    #[\Override]
+    public function set(Model $model, string $key, mixed $value, array $attributes): string|false|null
     {
         if ($value === null) {
             return null;

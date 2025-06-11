@@ -40,6 +40,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property \Carbon\Carbon|null $deleted_at
+ * 
+ * @mixin \Illuminate\Database\Eloquent\Builder
  */
 class Space extends Model
 {
@@ -121,16 +123,6 @@ class Space extends Model
     public const PLAN_ENTERPRISE = 'enterprise';
 
     /**
-     * Get all users associated with this space.
-     */
-    public function users(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'space_user')
-            ->withPivot(['role_id', 'custom_permissions', 'last_accessed_at'])
-            ->withTimestamps();
-    }
-
-    /**
      * Get all stories in this space.
      */
     public function stories(): HasMany
@@ -139,169 +131,11 @@ class Space extends Model
     }
 
     /**
-     * Get all components in this space.
-     */
-    public function components(): HasMany
-    {
-        return $this->hasMany(Component::class);
-    }
-
-    /**
-     * Get all assets in this space.
-     */
-    public function assets(): HasMany
-    {
-        return $this->hasMany(Asset::class);
-    }
-
-    /**
-     * Get all datasources in this space.
-     */
-    public function datasources(): HasMany
-    {
-        return $this->hasMany(Datasource::class);
-    }
-
-    /**
-     * Scope to active spaces only.
-     */
-    public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('status', self::STATUS_ACTIVE);
-    }
-
-    /**
-     * Scope to spaces by plan.
-     */
-    public function scopePlan(\Illuminate\Database\Eloquent\Builder $query, string $plan): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('plan', $plan);
-    }
-
-    /**
-     * Scope to spaces by domain.
-     */
-    public function scopeDomain(\Illuminate\Database\Eloquent\Builder $query, string $domain): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('domain', $domain);
-    }
-
-    /**
-     * Check if the space is active.
-     */
-    public function isActive(): bool
-    {
-        return $this->status === self::STATUS_ACTIVE;
-    }
-
-    /**
-     * Check if the space is suspended.
-     */
-    public function isSuspended(): bool
-    {
-        return $this->status === self::STATUS_SUSPENDED;
-    }
-
-    /**
-     * Check if the space is on trial.
-     */
-    public function isOnTrial(): bool
-    {
-        return $this->trial_ends_at && $this->trial_ends_at->isFuture();
-    }
-
-    /**
-     * Check if the trial has expired.
-     */
-    public function isTrialExpired(): bool
-    {
-        return $this->trial_ends_at && $this->trial_ends_at->isPast();
-    }
-
-    /**
      * Get space configuration for a specific environment.
      */
     public function getEnvironmentConfig(string $environment = 'production'): array
     {
         return $this->environments[$environment] ?? [];
-    }
-
-    /**
-     * Check if a language is supported.
-     */
-    public function supportsLanguage(string $language): bool
-    {
-        return \in_array($language, $this->languages);
-    }
-
-    /**
-     * Get the number of stories in this space.
-     */
-    public function getStoriesCount(): int
-    {
-        return $this->getCached('stories_count', function () {
-            return $this->stories()->count();
-        }, 3600);
-    }
-
-    /**
-     * Get the number of assets in this space.
-     */
-    public function getAssetsCount(): int
-    {
-        return $this->getCached('assets_count', function () {
-            return $this->assets()->count();
-        }, 3600);
-    }
-
-    /**
-     * Check if space has reached story limit.
-     */
-    public function hasReachedStoryLimit(): bool
-    {
-        if ($this->story_limit === null) {
-            return false;
-        }
-
-        return $this->getStoriesCount() >= $this->story_limit;
-    }
-
-    /**
-     * Check if space has reached asset limit.
-     */
-    public function hasReachedAssetLimit(): bool
-    {
-        if ($this->asset_limit === null) {
-            return false;
-        }
-
-        $totalSize = $this->getCached('assets_total_size', function () {
-            return $this->assets()->sum('file_size') / 1024 / 1024; // Convert to MB
-        }, 3600);
-
-        return $totalSize >= $this->asset_limit;
-    }
-
-    /**
-     * Suspend the space.
-     */
-    public function suspend(): bool
-    {
-        return $this->update([
-            'status' => self::STATUS_SUSPENDED,
-            'suspended_at' => now(),
-        ]);
-    }
-
-    /**
-     * Reactivate the space.
-     */
-    public function reactivate(): bool
-    {
-        return $this->update([
-            'status' => self::STATUS_ACTIVE,
-            'suspended_at' => null,
-        ]);
     }
 
     /**

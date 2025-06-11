@@ -242,6 +242,8 @@ abstract class BaseRepository
         $query = $this->model->newQuery();
 
         foreach ($criteria as $field => $value) {
+            /** @var string $field */
+            /** @var mixed $value */
             $query->where($field, $value);
         }
 

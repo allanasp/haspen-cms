@@ -24,6 +24,7 @@ trait MultiTenant
     {
         // Automatically scope queries to current space if one is set
         static::addGlobalScope('space', function (Builder $builder): void {
+            /** @var mixed $currentSpace */
             $currentSpace = app('current.space');
 
             if ($currentSpace instanceof Space) {
@@ -34,6 +35,7 @@ trait MultiTenant
         // Automatically set space_id when creating models
         static::creating(function (Model $model): void {
             if (empty($model->getAttribute('space_id'))) {
+                /** @var mixed $currentSpace */
                 $currentSpace = app('current.space');
 
                 if ($currentSpace instanceof Space) {

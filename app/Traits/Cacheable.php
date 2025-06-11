@@ -47,7 +47,9 @@ trait Cacheable
         $cacheKey = $this->getCacheKey($key);
         $ttl = $ttl ?? $this->getCacheTtl();
 
-        return Cache::remember($cacheKey, $ttl, $callback);
+        /** @var \Closure $closure */
+        $closure = \Closure::fromCallable($callback);
+        return Cache::remember($cacheKey, $ttl, $closure);
     }
 
     /**
@@ -119,7 +121,9 @@ trait Cacheable
     protected function getCacheKeyPrefix(): string
     {
         $modelClass = class_basename($this);
-        $identifier = $this->exists ? $this->getKey() : 'new';
+        /** @var mixed $keyValue */
+        $keyValue = $this->exists ? $this->getKey() : 'new';
+        $identifier = (string) $keyValue;
 
         return strtolower($modelClass) . ':' . $identifier . ':';
     }
@@ -131,7 +135,9 @@ trait Cacheable
      */
     protected function getCacheTtl(): int
     {
-        return $this->cacheTtl ?? 3600; // 1 hour default
+        /** @var int $defaultTtl */
+        $defaultTtl = property_exists($this, 'cacheTtl') ? $this->cacheTtl : 3600;
+        return $defaultTtl;
     }
 
     /**
@@ -165,12 +171,13 @@ trait Cacheable
     protected function getCacheKeysFromRegistry(string $pattern): array
     {
         $registryKey = 'cache_registry:' . class_basename($this);
+        /** @var array<string> $registry */
         $registry = Cache::get($registryKey, []);
 
         $patternRegex = '/^' . str_replace('*', '.*', preg_quote($pattern, '/')) . '$/';
 
-        return array_filter($registry, function ($key) use ($patternRegex) {
-            return preg_match($patternRegex, $key);
+        return array_filter($registry, function (string $key) use ($patternRegex): bool {
+            return (bool) preg_match($patternRegex, $key);
         });
     }
 
@@ -182,9 +189,10 @@ trait Cacheable
     protected function addToRegistry(string $key): void
     {
         $registryKey = 'cache_registry:' . class_basename($this);
+        /** @var array<string> $registry */
         $registry = Cache::get($registryKey, []);
 
-        if (! \in_array($key, $registry)) {
+        if (! \in_array($key, $registry, true)) {
             $registry[] = $key;
             Cache::put($registryKey, $registry, 86400); // 24 hours
         }

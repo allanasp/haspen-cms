@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $space_id
  * @property string $name
  * @property string $technical_name
+ * @property string|null $slug
  * @property string|null $description
  * @property string|null $display_name
  * @property array<string, mixed> $schema
@@ -43,6 +44,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  * @property \Carbon\Carbon|null $deleted_at
+ * 
+ * @mixin \Illuminate\Database\Eloquent\Builder
  */
 class Component extends Model
 {
@@ -61,6 +64,7 @@ class Component extends Model
     protected $fillable = [
         'name',
         'technical_name',
+        'slug',
         'description',
         'display_name',
         'schema',
@@ -90,6 +94,17 @@ class Component extends Model
         'is_root' => 'boolean',
         'allowed_roles' => Json::class,
     ];
+
+    /**
+     * Sluggable configuration.
+     */
+    protected string $slugSourceField = 'name';
+    protected bool $autoUpdateSlug = false;
+
+    /**
+     * Cacheable configuration.
+     */
+    protected int $cacheTtl = 3600;
 
     /**
      * The attributes that should be hidden for serialization.
@@ -147,200 +162,6 @@ class Component extends Model
         'story',
         'component',
     ];
-
-    /**
-     * Get the user who created this component.
-     */
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
-    /**
-     * Get the user who last updated this component.
-     */
-    public function updater(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'updated_by');
-    }
-
-    /**
-     * Scope to active components only.
-     */
-    public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('status', self::STATUS_ACTIVE);
-    }
-
-    /**
-     * Scope to inactive components.
-     */
-    public function scopeInactive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('status', self::STATUS_INACTIVE);
-    }
-
-    /**
-     * Scope to nestable components.
-     */
-    public function scopeNestable(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('is_nestable', true);
-    }
-
-    /**
-     * Scope to root components.
-     */
-    public function scopeRoot(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('is_root', true);
-    }
-
-    /**
-     * Scope components by version.
-     */
-    public function scopeVersion(\Illuminate\Database\Eloquent\Builder $query, int $version): \Illuminate\Database\Eloquent\Builder
-    {
-        return $query->where('version', $version);
-    }
-
-    /**
-     * Check if the component is active.
-     */
-    public function isActive(): bool
-    {
-        return $this->status === self::STATUS_ACTIVE;
-    }
-
-    /**
-     * Check if the component is nestable.
-     */
-    public function isNestable(): bool
-    {
-        return $this->is_nestable;
-    }
-
-    /**
-     * Check if the component can be used as root.
-     */
-    public function isRoot(): bool
-    {
-        return $this->is_root;
-    }
-
-    /**
-     * Check if the component is deprecated.
-     */
-    public function isDeprecated(): bool
-    {
-        return $this->status === self::STATUS_DEPRECATED;
-    }
-
-    /**
-     * Get field by key from schema.
-     */
-    public function getField(string $key): ?array
-    {
-        foreach ($this->schema ?? [] as $field) {
-            if ($field['key'] === $key) {
-                return $field;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Get all fields of a specific type.
-     */
-    public function getFieldsByType(string $type): array
-    {
-        $fields = [];
-
-        foreach ($this->schema ?? [] as $field) {
-            if ($field['type'] === $type) {
-                $fields[] = $field;
-            }
-        }
-
-        return $fields;
-    }
-
-    /**
-     * Get required fields.
-     */
-    public function getRequiredFields(): array
-    {
-        $fields = [];
-
-        foreach ($this->schema ?? [] as $field) {
-            if ($field['required'] ?? false) {
-                $fields[] = $field;
-            }
-        }
-
-        return $fields;
-    }
-
-    /**
-     * Validate component data against schema.
-     *
-     * @param array<string, mixed> $data
-     *
-     * @return array<string, string>
-     */
-    public function validateData(array $data): array
-    {
-        $errors = [];
-
-        foreach ($this->schema ?? [] as $field) {
-            $key = $field['key'];
-            $value = $data[$key] ?? null;
-
-            // Check required fields
-            if (($field['required'] ?? false) && ($value === null || $value === '')) {
-                $errors[$key] = "Field '{$key}' is required";
-
-                continue;
-            }
-
-            // Skip validation if field is not present and not required
-            if ($value === null) {
-                continue;
-            }
-
-            // Type-specific validation
-            $validationError = $this->validateFieldValue($field, $value);
-            if ($validationError) {
-                $errors[$key] = $validationError;
-            }
-        }
-
-        return $errors;
-    }
-
-    /**
-     * Validate a single field value.
-     *
-     * @param array<string, mixed> $field
-     */
-    protected function validateFieldValue(array $field, mixed $value): ?string
-    {
-        $type = $field['type'];
-
-        return match ($type) {
-            'text', 'textarea' => $this->validateString($value, $field),
-            'number' => $this->validateNumber($value, $field),
-            'boolean' => $this->validateBoolean($value),
-            'email' => $this->validateEmail($value),
-            'url' => $this->validateUrl($value),
-            'date', 'datetime' => $this->validateDate($value),
-            'select' => $this->validateSelect($value, $field),
-            'multiselect' => $this->validateMultiselect($value, $field),
-            'json' => $this->validateJson($value),
-            default => null,
-        };
-    }
 
     /**
      * Validate string field.
@@ -508,70 +329,6 @@ class Component extends Model
         }
 
         return null;
-    }
-
-    /**
-     * Get component preview based on preview field configuration.
-     *
-     * @param array<string, mixed> $data
-     */
-    public function getPreview(array $data): string
-    {
-        if (! $this->preview_field) {
-            return $this->name;
-        }
-
-        $template = $this->preview_field['template'] ?? '{name}';
-        $fields = $this->preview_field['fields'] ?? ['name'];
-
-        // Simple template replacement
-        foreach ($fields as $field) {
-            $value = $data[$field] ?? '';
-            $template = str_replace("{{$field}}", (string) $value, $template);
-        }
-
-        return $template ?: $this->name;
-    }
-
-    /**
-     * Increment version.
-     */
-    public function incrementVersion(): bool
-    {
-        return $this->update(['version' => $this->version + 1]);
-    }
-
-    /**
-     * Deprecate the component.
-     */
-    public function deprecate(): bool
-    {
-        return $this->update(['status' => self::STATUS_DEPRECATED]);
-    }
-
-    /**
-     * Check if user can use this component.
-     */
-    public function canBeUsedBy(?User $user = null): bool
-    {
-        // Public components (no role restrictions)
-        if (empty($this->allowed_roles)) {
-            return true;
-        }
-
-        // Require authentication
-        if (! $user) {
-            return false;
-        }
-
-        // Check user role in space
-        $userRole = $user->getRoleInSpace($this->space_id);
-
-        if (! $userRole) {
-            return false;
-        }
-
-        return \in_array($userRole->slug, $this->allowed_roles);
     }
 
     /**

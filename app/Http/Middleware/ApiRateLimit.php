@@ -66,7 +66,7 @@ class ApiRateLimit
     /**
      * Create a rate limit response.
      */
-    protected function buildRateLimitResponse(string $key, int $maxAttempts): Response
+    protected function buildRateLimitResponse(string $key, int $maxAttempts): \Illuminate\Http\JsonResponse
     {
         $retryAfter = $this->limiter->availableIn($key);
 

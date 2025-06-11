@@ -9,7 +9,14 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Space>
  */
-class SpaceFactory extends Factory
+final class SpaceFactory extends Factory
+{
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var class-string<\App\Models\Space>
+     */
+    protected $model = \App\Models\Space::class;
 {
     /**
      * Define the model's default state.
@@ -65,40 +72,5 @@ class SpaceFactory extends Factory
             'status' => $this->faker->randomElement(['active', 'suspended', 'deleted']),
             'trial_ends_at' => $this->faker->optional(0.4)->dateTimeBetween('+1 week', '+1 month'),
         ];
-    }
-
-    /**
-     * Configure the model factory for active spaces.
-     */
-    public function active(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'active',
-            'suspended_at' => null,
-        ]);
-    }
-
-    /**
-     * Configure the model factory for suspended spaces.
-     */
-    public function suspended(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'suspended',
-            'suspended_at' => $this->faker->dateTimeBetween('-1 month', 'now'),
-        ]);
-    }
-
-    /**
-     * Configure the model factory for enterprise plan.
-     */
-    public function enterprise(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'plan' => 'enterprise',
-            'story_limit' => null, // unlimited
-            'asset_limit' => null, // unlimited
-            'api_limit' => null, // unlimited
-        ]);
     }
 }

@@ -15,7 +15,7 @@ use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 /**
  * JWT Service for handling JSON Web Token operations.
  */
-class JwtService extends BaseService
+final class JwtService extends BaseService
 {
     private Configuration $config;
 
@@ -29,9 +29,9 @@ class JwtService extends BaseService
 
     public function __construct()
     {
-        $secret = config('app.jwt_secret', config('app.key'));
-        $this->issuer = config('app.url');
-        $this->audience = config('app.url');
+        $secret = (string) config('app.jwt_secret', config('app.key'));
+        $this->issuer = (string) config('app.url');
+        $this->audience = (string) config('app.url');
         $this->ttl = (int) config('app.jwt_ttl', 3600); // 1 hour default
         $this->refreshTtl = (int) config('app.jwt_refresh_ttl', 1209600); // 2 weeks default
 
@@ -61,14 +61,16 @@ class JwtService extends BaseService
 
         // Add custom claims
         foreach ($claims as $name => $value) {
+            /** @var string $name */
             $builder = $builder->withClaim($name, $value);
         }
 
         $token = $builder->getToken($this->config->signer(), $this->config->signingKey());
 
+        $exp = $token->claims()->get('exp');
         $this->logInfo('Access token generated', [
             'user_id' => $userId,
-            'expires_at' => $token->claims()->get('exp')?->format('Y-m-d H:i:s'),
+            'expires_at' => $exp instanceof \DateTimeImmutable ? $exp->format('Y-m-d H:i:s') : null,
         ]);
 
         return $token->toString();
@@ -91,9 +93,10 @@ class JwtService extends BaseService
             ->withClaim('type', 'refresh')
             ->getToken($this->config->signer(), $this->config->signingKey());
 
+        $exp = $token->claims()->get('exp');
         $this->logInfo('Refresh token generated', [
             'user_id' => $userId,
-            'expires_at' => $token->claims()->get('exp')?->format('Y-m-d H:i:s'),
+            'expires_at' => $exp instanceof \DateTimeImmutable ? $exp->format('Y-m-d H:i:s') : null,
         ]);
 
         return $token->toString();
@@ -105,6 +108,9 @@ class JwtService extends BaseService
     public function parseToken(string $tokenString): Plain
     {
         try {
+            if (empty($tokenString)) {
+                throw new \InvalidArgumentException('Token string cannot be empty');
+            }
             $token = $this->config->parser()->parse($tokenString);
 
             if (! $token instanceof Plain) {
@@ -127,6 +133,9 @@ class JwtService extends BaseService
     public function validateToken(Plain $token): bool
     {
         try {
+            if (empty($this->issuer) || empty($this->audience)) {
+                throw new \InvalidArgumentException('Issuer and audience must be configured');
+            }
             $constraints = [
                 new IssuedBy($this->issuer),
                 new PermittedFor($this->audience),
@@ -177,6 +186,9 @@ class JwtService extends BaseService
      */
     public function getClaim(Plain $token, string $name): mixed
     {
+        if (empty($name)) {
+            throw new \InvalidArgumentException('Claim name cannot be empty');
+        }
         return $token->claims()->get($name);
     }
 
@@ -187,7 +199,7 @@ class JwtService extends BaseService
     {
         $expiresAt = $token->claims()->get('exp');
 
-        if ($expiresAt === null) {
+        if ($expiresAt === null || !$expiresAt instanceof \DateTimeImmutable) {
             return true;
         }
 
@@ -199,7 +211,8 @@ class JwtService extends BaseService
      */
     public function getExpirationTime(Plain $token): ?\DateTimeImmutable
     {
-        return $token->claims()->get('exp');
+        $exp = $token->claims()->get('exp');
+        return $exp instanceof \DateTimeImmutable ? $exp : null;
     }
 
     /**

@@ -17,6 +17,7 @@ class Json implements CastsAttributes
      *
      * @param array<string, mixed> $attributes
      */
+    #[\Override]
     public function get(Model $model, string $key, mixed $value, array $attributes): mixed
     {
         if ($value === null) {
@@ -37,6 +38,7 @@ class Json implements CastsAttributes
      *
      * @param array<string, mixed> $attributes
      */
+    #[\Override]
     public function set(Model $model, string $key, mixed $value, array $attributes): mixed
     {
         if ($value === null) {

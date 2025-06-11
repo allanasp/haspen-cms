@@ -22,6 +22,7 @@ trait HasApiResponses
         string $message = 'Success',
         int $status = Response::HTTP_OK
     ): JsonResponse {
+        /** @var array<string, mixed> $response */
         $response = [
             'success' => true,
             'message' => $message,
@@ -141,6 +142,11 @@ trait HasApiResponses
      */
     protected function paginated(mixed $data, string $message = 'Success'): JsonResponse
     {
+        // Type check to ensure the data object has pagination methods
+        if (! method_exists($data, 'items') || ! method_exists($data, 'currentPage')) {
+            throw new \InvalidArgumentException('Data must be a paginated result');
+        }
+
         return response()->json([
             'success' => true,
             'message' => $message,
