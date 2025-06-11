@@ -12,7 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Register custom API middleware
+        $middleware->alias([
+            'tenant.isolation' => \App\Http\Middleware\TenantIsolation::class,
+            'api.auth' => \App\Http\Middleware\ApiAuthentication::class,
+            'api.rate_limit' => \App\Http\Middleware\ApiRateLimit::class,
+            'api.logging' => \App\Http\Middleware\ApiLogging::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

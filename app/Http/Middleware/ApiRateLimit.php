@@ -22,18 +22,17 @@ final class ApiRateLimit
     /**
      * Handle an incoming request.
      */
-    public function handle(Request $request, \Closure $next, string $maxAttempts = '60', string $decayMinutes = '1'): mixed
+    public function handle(Request $request, \Closure $next, string $limitType = 'default'): mixed
     {
-        $key = $this->resolveRequestSignature($request);
-
-        $maxAttempts = (int) $maxAttempts;
-        $decayMinutes = (int) $decayMinutes;
+        $key = $this->resolveRequestSignature($request, $limitType);
+        $maxAttempts = $this->getLimit($limitType);
+        $decayMinutes = $this->getWindow($limitType);
 
         if ($this->limiter->tooManyAttempts($key, $maxAttempts)) {
             return $this->buildRateLimitResponse($key, $maxAttempts);
         }
 
-        $this->limiter->hit($key, $decayMinutes * 60);
+        $this->limiter->hit($key, $decayMinutes);
 
         /** @var mixed $response */
         $response = $next($request);
@@ -50,9 +49,35 @@ final class ApiRateLimit
     }
 
     /**
+     * Get rate limit for the given type.
+     */
+    private function getLimit(string $limitType): int
+    {
+        return match ($limitType) {
+            'cdn' => 60,        // CDN API: 60 requests per minute
+            'management' => 120, // Management API: 120 requests per minute  
+            'auth' => 10,       // Auth API: 10 requests per minute
+            default => 60
+        };
+    }
+
+    /**
+     * Get rate limit window in seconds.
+     */
+    private function getWindow(string $limitType): int
+    {
+        return match ($limitType) {
+            'cdn' => 60,        // 1 minute
+            'management' => 60, // 1 minute
+            'auth' => 60,       // 1 minute
+            default => 60
+        };
+    }
+
+    /**
      * Resolve the request signature.
      */
-    protected function resolveRequestSignature(Request $request): string
+    protected function resolveRequestSignature(Request $request, string $limitType = 'default'): string
     {
         /** @var \Illuminate\Contracts\Auth\Authenticatable|null $user */
         $user = $request->user();
@@ -62,12 +87,20 @@ final class ApiRateLimit
         $routeName = $route->getName();
         $routeIdentifier = $routeName ?? $request->path();
 
-        return \sprintf(
-            'api_rate_limit:%s:%s:%s',
+        $baseKey = \sprintf(
+            'api_rate_limit:%s:%s:%s:%s',
+            $limitType,
             (string) $userId,
             $request->ip() ?? 'unknown',
             $routeIdentifier
         );
+
+        // Add space context for management API
+        if ($limitType === 'management' && $space = $request->get('current_space')) {
+            $baseKey .= ':space:' . $space->id;
+        }
+
+        return $baseKey;
     }
 
     /**
