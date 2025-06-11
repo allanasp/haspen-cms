@@ -47,7 +47,7 @@ trait Cacheable
         $cacheKey = $this->getCacheKey($key);
         $ttl = $ttl ?? $this->getCacheTtl();
 
-        return Cache::remember($cacheKey, $ttl, $callback);
+        return Cache::remember($cacheKey, $ttl, \Closure::fromCallable($callback));
     }
 
     /**

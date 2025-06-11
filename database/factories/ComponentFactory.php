@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Component>
+ * @psalm-suppress UnusedClass
  */
 final class ComponentFactory extends Factory
 {

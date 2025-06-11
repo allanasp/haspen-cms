@@ -10,7 +10,10 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Component schema cast with validation.
  */
-class ComponentSchema implements CastsAttributes
+/**
+ * @implements CastsAttributes<array|null, array|null>
+ */
+final class ComponentSchema implements CastsAttributes
 {
     /**
      * Cast the given value for storage.
@@ -22,6 +25,10 @@ class ComponentSchema implements CastsAttributes
     {
         if ($value === null) {
             return null;
+        }
+
+        if (!is_string($value)) {
+            throw new \InvalidArgumentException('Expected string value for JSON decoding');
         }
 
         $decoded = json_decode($value, true);

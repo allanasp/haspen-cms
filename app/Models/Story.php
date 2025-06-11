@@ -153,7 +153,9 @@ final class Story extends Model
      */
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Story::class, 'parent_id');
+        /** @var BelongsTo<Story, Story> $relation */
+        $relation = $this->belongsTo(Story::class, 'parent_id');
+        return $relation;
     }
 
     /**
@@ -162,10 +164,12 @@ final class Story extends Model
     public function generateFullSlug(): string
     {
         $slugs = [$this->slug];
+        /** @var Story|null $current */
         $current = $this->parent_id !== null ? $this->parent : null;
 
         while ($current instanceof Story) {
             array_unshift($slugs, $current->slug);
+            /** @var Story|null $current */
             $current = $current->parent_id !== null ? $current->parent : null;
         }
 
@@ -189,6 +193,7 @@ final class Story extends Model
                 'name' => $current->name,
                 'slug' => $current->slug,
             ];
+            /** @var Story|null $current */
             $current = $current->parent_id !== null ? $current->parent : null;
         }
 
@@ -218,7 +223,9 @@ final class Story extends Model
             if ($story->isDirty(['slug', 'parent_id'])) {
                 $story->full_slug = $story->generateFullSlug();
                 $story->path = '/' . $story->full_slug;
-                $story->breadcrumbs = $story->generateBreadcrumbs();
+                /** @var array<string, mixed> $breadcrumbs */
+                $breadcrumbs = $story->generateBreadcrumbs();
+                $story->breadcrumbs = $breadcrumbs;
             }
         });
     }

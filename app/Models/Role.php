@@ -35,7 +35,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 final class Role extends Model
 {
-    /** @use HasFactory<\Database\Factories\RoleFactory> */
     use HasFactory;
     use HasUuid;
     use SoftDeletes;

@@ -9,8 +9,10 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Custom JSON cast with validation support.
+ *
+ * @implements CastsAttributes<mixed, mixed>
  */
-class Json implements CastsAttributes
+final class Json implements CastsAttributes
 {
     /**
      * Cast the given value for storage.
@@ -24,6 +26,11 @@ class Json implements CastsAttributes
             return null;
         }
 
+        if (!is_string($value)) {
+            throw new \InvalidArgumentException('Expected string value for JSON decoding');
+        }
+
+        /** @var mixed $decoded */
         $decoded = json_decode($value, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {

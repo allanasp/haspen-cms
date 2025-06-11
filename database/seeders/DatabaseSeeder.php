@@ -8,6 +8,9 @@ use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+/**
+ * @psalm-suppress UnusedClass
+ */
 final class DatabaseSeeder extends Seeder
 {
     /**

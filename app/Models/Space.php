@@ -128,7 +128,9 @@ final class Space extends Model
      */
     public function stories(): HasMany
     {
-        return $this->hasMany(Story::class);
+        /** @var HasMany<Story, Space> $relation */
+        $relation = $this->hasMany(Story::class);
+        return $relation;
     }
 
     /**
@@ -136,9 +138,13 @@ final class Space extends Model
      */
     public function getEnvironmentConfig(string $environment = 'production'): array
     {
-        /** @var array<string, mixed> $environments */
-        $environments = $this->environments ?? [];
-        return $environments[$environment] ?? [];
+        $environments = $this->environments;
+        if (!is_array($environments)) {
+            return [];
+        }
+        /** @var mixed $config */
+        $config = $environments[$environment] ?? [];
+        return is_array($config) ? $config : [];
     }
 
     /**

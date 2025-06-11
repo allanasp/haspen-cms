@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 /**
  * API Rate Limiting Middleware.
  */
-class ApiRateLimit
+final class ApiRateLimit
 {
     public function __construct(private RateLimiter $limiter)
     {
@@ -34,6 +34,7 @@ class ApiRateLimit
 
         $this->limiter->hit($key, $decayMinutes * 60);
 
+        /** @var mixed $response */
         $response = $next($request);
 
         if ($response instanceof Response) {
@@ -52,14 +53,18 @@ class ApiRateLimit
      */
     protected function resolveRequestSignature(Request $request): string
     {
-        $userId = $request->user()?->id ?? 'guest';
-        $route = $request->route()?->getName() ?? $request->path();
+        $user = $request->user();
+        /** @var string|int $userId */
+        $userId = $user?->id ?? 'guest';
+        $route = $request->route();
+        $routeName = $route !== null ? $route->getName() : null;
+        $routeIdentifier = $routeName ?? $request->path();
 
         return \sprintf(
             'api_rate_limit:%s:%s:%s',
-            $userId,
-            $request->ip(),
-            $route
+            (string) $userId,
+            $request->ip() ?? 'unknown',
+            $routeIdentifier
         );
     }
 
@@ -99,6 +104,6 @@ class ApiRateLimit
      */
     protected function calculateRemainingAttempts(string $key, int $maxAttempts): int
     {
-        return $maxAttempts - $this->limiter->attempts($key);
+        return max(0, $maxAttempts - $this->limiter->attempts($key));
     }
 }

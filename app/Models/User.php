@@ -111,25 +111,29 @@ final class User extends Authenticatable
     /**
      * Get all spaces this user belongs to.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Space, $this>
+     * @return BelongsToMany<Space, $this>
      */
     public function spaces(): BelongsToMany
     {
-        return $this->belongsToMany(Space::class, 'space_user')
+        /** @var BelongsToMany<Space, $this> $relation */
+        $relation = $this->belongsToMany(Space::class, 'space_user')
             ->withPivot(['role_id', 'custom_permissions', 'last_accessed_at'])
             ->withTimestamps();
+        return $relation;
     }
 
     /**
      * Get all roles for this user across all spaces.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Role, $this>
+     * @return BelongsToMany<Role, $this>
      */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'space_user')
+        /** @var BelongsToMany<Role, $this> $relation */
+        $relation = $this->belongsToMany(Role::class, 'space_user')
             ->withPivot(['space_id', 'custom_permissions', 'last_accessed_at'])
             ->withTimestamps();
+        return $relation;
     }
 
     /**
@@ -179,7 +183,9 @@ final class User extends Authenticatable
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
-        return $this->spaces()->where('space_id', $spaceId)->exists();
+        /** @var \Illuminate\Database\Eloquent\Relations\BelongsToMany<Space, $this> $spacesRelation */
+        $spacesRelation = $this->spaces();
+        return $spacesRelation->where('space_id', $spaceId)->exists();
     }
 
     /**
@@ -189,13 +195,21 @@ final class User extends Authenticatable
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
-        $space = $this->spaces()->where('space_id', $spaceId)->first();
+        /** @var \Illuminate\Database\Eloquent\Relations\BelongsToMany<Space, $this> $spacesRelation */
+        $spacesRelation = $this->spaces();
+        $space = $spacesRelation->where('space_id', $spaceId)->first();
         
-        if (!$space || !$space->pivot) {
+        if (!$space) {
             return null;
         }
 
-        $roleId = $space->pivot->getAttribute('role_id');
+        $pivot = $space->pivot;
+        if (!$pivot) {
+            return null;
+        }
+
+        /** @var mixed $roleId */
+        $roleId = $pivot->getAttribute('role_id');
         if (!$roleId) {
             return null;
         }
@@ -212,14 +226,23 @@ final class User extends Authenticatable
     {
         $spaceId = $space instanceof Space ? $space->id : $space;
 
-        $space = $this->spaces()->where('space_id', $spaceId)->first();
+        /** @var \Illuminate\Database\Eloquent\Relations\BelongsToMany<Space, $this> $spacesRelation */
+        $spacesRelation = $this->spaces();
+        $space = $spacesRelation->where('space_id', $spaceId)->first();
 
-        if (!$space || !$space->pivot) {
+        if (!$space) {
             return [];
         }
 
+        $pivot = $space->pivot;
+        if (!$pivot) {
+            return [];
+        }
+
+        /** @var mixed $permissionsData */
+        $permissionsData = $pivot->getAttribute('custom_permissions');
         /** @var array<string, mixed> $permissions */
-        $permissions = $space->pivot->getAttribute('custom_permissions') ?? [];
+        $permissions = $permissionsData ?? [];
         return $permissions;
     }
 
@@ -262,7 +285,11 @@ final class User extends Authenticatable
      */
     public function getPreference(string $key, mixed $default = null): mixed
     {
-        return $this->preferences[$key] ?? $default;
+        $preferences = $this->preferences;
+        if (!is_array($preferences)) {
+            return $default;
+        }
+        return $preferences[$key] ?? $default;
     }
 
     /**
@@ -270,7 +297,10 @@ final class User extends Authenticatable
      */
     public function setPreference(string $key, mixed $value): bool
     {
-        $preferences = $this->preferences ?? [];
+        $preferences = $this->preferences;
+        if (!is_array($preferences)) {
+            $preferences = [];
+        }
         $preferences[$key] = $value;
 
         return $this->update(['preferences' => $preferences]);
@@ -283,7 +313,11 @@ final class User extends Authenticatable
      */
     public function getMetadata(string $key, mixed $default = null): mixed
     {
-        return $this->metadata[$key] ?? $default;
+        $metadata = $this->metadata;
+        if (!is_array($metadata)) {
+            return $default;
+        }
+        return $metadata[$key] ?? $default;
     }
 
     /**
@@ -291,7 +325,10 @@ final class User extends Authenticatable
      */
     public function setMetadata(string $key, mixed $value): bool
     {
-        $metadata = $this->metadata ?? [];
+        $metadata = $this->metadata;
+        if (!is_array($metadata)) {
+            $metadata = [];
+        }
         $metadata[$key] = $value;
 
         return $this->update(['metadata' => $metadata]);

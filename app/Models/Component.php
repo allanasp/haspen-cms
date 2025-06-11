@@ -312,7 +312,9 @@ final class Component extends Model
             return 'JSON value must be a string or array';
         }
 
-        json_decode($value);
+        /** @var mixed $decoded */
+        $decoded = json_decode($value);
+        unset($decoded); // Variable only used for validation
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             return 'Value must be valid JSON';

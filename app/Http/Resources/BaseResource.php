@@ -10,7 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * Base resource class for consistent API responses.
  */
-class BaseResource extends JsonResource
+final class BaseResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -21,9 +21,15 @@ class BaseResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'created_at' => $this->when($this->created_at, fn () => $this->created_at?->toISOString()),
-            'updated_at' => $this->when($this->updated_at, fn () => $this->updated_at?->toISOString()),
+            'id' => $this->resource->id ?? null,
+            'created_at' => $this->when(
+                isset($this->resource->created_at),
+                fn () => $this->resource->created_at?->toISOString()
+            ),
+            'updated_at' => $this->when(
+                isset($this->resource->updated_at),
+                fn () => $this->resource->updated_at?->toISOString()
+            ),
         ];
     }
 
@@ -33,8 +39,8 @@ class BaseResource extends JsonResource
     protected function withTimestamps(): array
     {
         return [
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
+            'created_at' => $this->resource->created_at?->toISOString(),
+            'updated_at' => $this->resource->updated_at?->toISOString(),
         ];
     }
 
@@ -45,8 +51,8 @@ class BaseResource extends JsonResource
     {
         return [
             'deleted_at' => $this->when(
-                property_exists($this->resource, 'deleted_at') && $this->deleted_at,
-                fn () => $this->deleted_at?->toISOString()
+                property_exists($this->resource, 'deleted_at') && isset($this->resource->deleted_at),
+                fn () => $this->resource->deleted_at?->toISOString()
             ),
         ];
     }

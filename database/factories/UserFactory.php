@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @psalm-suppress UnusedClass
  */
 final class UserFactory extends Factory
 {
