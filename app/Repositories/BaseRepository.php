@@ -227,9 +227,7 @@ abstract class BaseRepository
      */
     public function count(): int
     {
-        /** @var int $result */
-        $result = $this->model->newQuery()->count();
-        return $result;
+        return $this->model->newQuery()->count();
     }
 
     /**

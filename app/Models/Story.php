@@ -55,8 +55,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * 
  * @mixin \Illuminate\Database\Eloquent\Builder
  */
-class Story extends Model
+final class Story extends Model
 {
+    /** @use HasFactory<\Database\Factories\StoryFactory> */
     use HasFactory;
     use HasUuid;
     use MultiTenant;
@@ -67,7 +68,7 @@ class Story extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'parent_id',
@@ -100,7 +101,7 @@ class Story extends Model
     /**
      * The attributes that should be cast.
      *
-     * @var array<string, string>
+     * @var array<array-key, mixed>
      */
     protected $casts = [
         'content' => Json::class,
@@ -119,7 +120,7 @@ class Story extends Model
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<array-key, string>
      */
     protected $hidden = [
         'id',
@@ -141,11 +142,19 @@ class Story extends Model
     /**
      * Available story statuses.
      */
-    public const STATUS_DRAFT = 'draft';
-    public const STATUS_REVIEW = 'review';
-    public const STATUS_PUBLISHED = 'published';
-    public const STATUS_SCHEDULED = 'scheduled';
-    public const STATUS_ARCHIVED = 'archived';
+    public const string STATUS_DRAFT = 'draft';
+    public const string STATUS_REVIEW = 'review';
+    public const string STATUS_PUBLISHED = 'published';
+    public const string STATUS_SCHEDULED = 'scheduled';
+    public const string STATUS_ARCHIVED = 'archived';
+
+    /**
+     * Get the parent story.
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Story::class, 'parent_id');
+    }
 
     /**
      * Generate full slug based on parent hierarchy.
@@ -153,11 +162,11 @@ class Story extends Model
     public function generateFullSlug(): string
     {
         $slugs = [$this->slug];
-        $parent = $this->parent;
+        $current = $this->parent_id ? $this->parent : null;
 
-        while ($parent) {
-            array_unshift($slugs, $parent->slug);
-            $parent = $parent->parent;
+        while ($current instanceof Story) {
+            array_unshift($slugs, $current->slug);
+            $current = $current->parent_id ? $current->parent : null;
         }
 
         return implode('/', $slugs);
@@ -165,22 +174,25 @@ class Story extends Model
 
     /**
      * Generate breadcrumbs array.
+     *
+     * @return array<string, mixed>
      */
     public function generateBreadcrumbs(): array
     {
+        /** @var array<string, mixed> $breadcrumbs */
         $breadcrumbs = [];
         $current = $this;
 
-        while ($current) {
-            array_unshift($breadcrumbs, [
+        while ($current instanceof Story) {
+            $breadcrumbs[] = [
                 'uuid' => $current->uuid,
                 'name' => $current->name,
                 'slug' => $current->slug,
-            ]);
-            $current = $current->parent;
+            ];
+            $current = $current->parent_id ? $current->parent : null;
         }
 
-        return $breadcrumbs;
+        return array_reverse($breadcrumbs);
     }
 
     /**

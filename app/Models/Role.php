@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $name
  * @property string $slug
  * @property string|null $description
- * @property array<string> $permissions
+ * @property array<array-key, string> $permissions
  * @property bool $is_system_role
  * @property bool $is_default
  * @property int $priority
@@ -133,17 +133,17 @@ class Role extends Model
     /**
      * System roles.
      */
-    public const ROLE_ADMIN = 'admin';
-    public const ROLE_EDITOR = 'editor';
-    public const ROLE_AUTHOR = 'author';
-    public const ROLE_VIEWER = 'viewer';
+    public const string ROLE_ADMIN = 'admin';
+    public const string ROLE_EDITOR = 'editor';
+    public const string ROLE_AUTHOR = 'author';
+    public const string ROLE_VIEWER = 'viewer';
 
     /**
      * Check if the role has a specific permission.
      */
     public function hasPermission(string $permission): bool
     {
-        return \in_array($permission, $this->permissions ?? []);
+        return \in_array($permission, $this->permissions);
     }
 
     /**

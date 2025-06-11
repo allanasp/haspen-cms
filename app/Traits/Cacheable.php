@@ -47,9 +47,7 @@ trait Cacheable
         $cacheKey = $this->getCacheKey($key);
         $ttl = $ttl ?? $this->getCacheTtl();
 
-        /** @var \Closure $closure */
-        $closure = \Closure::fromCallable($callback);
-        return Cache::remember($cacheKey, $ttl, $closure);
+        return Cache::remember($cacheKey, $ttl, $callback);
     }
 
     /**
@@ -135,9 +133,7 @@ trait Cacheable
      */
     protected function getCacheTtl(): int
     {
-        /** @var int $defaultTtl */
-        $defaultTtl = property_exists($this, 'cacheTtl') ? $this->cacheTtl : 3600;
-        return $defaultTtl;
+        return property_exists($this, 'cacheTtl') ? $this->cacheTtl : 3600;
     }
 
     /**

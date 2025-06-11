@@ -43,8 +43,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * 
  * @mixin \Illuminate\Database\Eloquent\Builder
  */
-class Space extends Model
+final class Space extends Model
 {
+    /** @use HasFactory<\Database\Factories\SpaceFactory> */
     use HasFactory;
     use HasUuid;
     use Sluggable;
@@ -54,7 +55,7 @@ class Space extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
@@ -77,7 +78,7 @@ class Space extends Model
     /**
      * The attributes that should be cast.
      *
-     * @var array<string, string>
+     * @var array<array-key, mixed>
      */
     protected $casts = [
         'settings' => Json::class,
@@ -90,7 +91,7 @@ class Space extends Model
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<array-key, string>
      */
     protected $hidden = [
         'id',
@@ -111,16 +112,16 @@ class Space extends Model
     /**
      * Available space statuses.
      */
-    public const STATUS_ACTIVE = 'active';
-    public const STATUS_SUSPENDED = 'suspended';
-    public const STATUS_DELETED = 'deleted';
+    public const string STATUS_ACTIVE = 'active';
+    public const string STATUS_SUSPENDED = 'suspended';
+    public const string STATUS_DELETED = 'deleted';
 
     /**
      * Available plans.
      */
-    public const PLAN_FREE = 'free';
-    public const PLAN_PRO = 'pro';
-    public const PLAN_ENTERPRISE = 'enterprise';
+    public const string PLAN_FREE = 'free';
+    public const string PLAN_PRO = 'pro';
+    public const string PLAN_ENTERPRISE = 'enterprise';
 
     /**
      * Get all stories in this space.
@@ -135,7 +136,9 @@ class Space extends Model
      */
     public function getEnvironmentConfig(string $environment = 'production'): array
     {
-        return $this->environments[$environment] ?? [];
+        /** @var array<string, mixed> $environments */
+        $environments = $this->environments ?? [];
+        return $environments[$environment] ?? [];
     }
 
     /**

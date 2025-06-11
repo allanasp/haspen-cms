@@ -43,10 +43,12 @@ use Laravel\Sanctum\HasApiTokens;
  * 
  * @mixin \Illuminate\Database\Eloquent\Builder
  */
-class User extends Authenticatable
+final class User extends Authenticatable
 {
+    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
     use Notifiable;
+    /** @use HasApiTokens<User> */
     use HasApiTokens;
     use HasUuid;
     use SoftDeletes;
@@ -55,7 +57,7 @@ class User extends Authenticatable
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
@@ -72,7 +74,7 @@ class User extends Authenticatable
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<array-key, string>
      */
     protected $hidden = [
         'id',
@@ -83,7 +85,7 @@ class User extends Authenticatable
     /**
      * The attributes that should be cast.
      *
-     * @var array<string, string>
+     * @var array<array-key, mixed>
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
@@ -102,14 +104,14 @@ class User extends Authenticatable
     /**
      * Available user statuses.
      */
-    public const STATUS_ACTIVE = 'active';
-    public const STATUS_INACTIVE = 'inactive';
-    public const STATUS_SUSPENDED = 'suspended';
+    public const string STATUS_ACTIVE = 'active';
+    public const string STATUS_INACTIVE = 'inactive';
+    public const string STATUS_SUSPENDED = 'suspended';
 
     /**
      * Get all spaces this user belongs to.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Space>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Space, $this>
      */
     public function spaces(): BelongsToMany
     {
@@ -121,7 +123,7 @@ class User extends Authenticatable
     /**
      * Get all roles for this user across all spaces.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Role>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Role, $this>
      */
     public function roles(): BelongsToMany
     {
@@ -188,14 +190,18 @@ class User extends Authenticatable
         $spaceId = $space instanceof Space ? $space->id : $space;
 
         $space = $this->spaces()->where('space_id', $spaceId)->first();
-        $pivot = $space?->pivot;
+        
+        if (!$space || !$space->pivot) {
+            return null;
+        }
 
-        if (! $pivot || ! $pivot->getAttribute('role_id')) {
+        $roleId = $space->pivot->getAttribute('role_id');
+        if (!$roleId) {
             return null;
         }
 
         /** @var Role|null $role */
-        $role = Role::find($pivot->getAttribute('role_id'));
+        $role = Role::find($roleId);
         return $role;
     }
 
@@ -207,10 +213,13 @@ class User extends Authenticatable
         $spaceId = $space instanceof Space ? $space->id : $space;
 
         $space = $this->spaces()->where('space_id', $spaceId)->first();
-        $pivot = $space?->pivot;
+
+        if (!$space || !$space->pivot) {
+            return [];
+        }
 
         /** @var array<string, mixed> $permissions */
-        $permissions = $pivot?->getAttribute('custom_permissions') ?? [];
+        $permissions = $space->pivot->getAttribute('custom_permissions') ?? [];
         return $permissions;
     }
 
@@ -261,7 +270,6 @@ class User extends Authenticatable
      */
     public function setPreference(string $key, mixed $value): bool
     {
-        /** @var array<string, mixed> $preferences */
         $preferences = $this->preferences ?? [];
         $preferences[$key] = $value;
 
@@ -283,7 +291,6 @@ class User extends Authenticatable
      */
     public function setMetadata(string $key, mixed $value): bool
     {
-        /** @var array<string, mixed> $metadata */
         $metadata = $this->metadata ?? [];
         $metadata[$key] = $value;
 
