@@ -23,7 +23,7 @@ trait MultiTenant
     public static function bootMultiTenant(): void
     {
         // Automatically scope queries to current space if one is set
-        static::addGlobalScope('space', function (Builder $builder): void {
+        static::addGlobalScope('space', /** @param Builder<static> $builder */ function (Builder $builder): void {
             /** @var mixed $currentSpace */
             $currentSpace = app('current.space');
 

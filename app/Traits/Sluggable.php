@@ -38,7 +38,7 @@ trait Sluggable
      */
     public function generateSlugIfEmpty(): void
     {
-        if (empty($this->slug)) {
+        if ($this->slug === null || $this->slug === '') {
             $this->slug = $this->generateUniqueSlug();
         }
     }
@@ -64,10 +64,10 @@ trait Sluggable
      */
     public function generateUniqueSlug(?string $value = null): string
     {
-        $value = $value ?: $this->getSlugSourceValue();
+        $value = $value !== null && $value !== '' ? $value : $this->getSlugSourceValue();
         $baseSlug = Str::slug($value);
 
-        if (empty($baseSlug)) {
+        if ($baseSlug === null || $baseSlug === '') {
             $baseSlug = 'item';
         }
 
@@ -113,7 +113,7 @@ trait Sluggable
      */
     protected function getSlugSourceField(): string
     {
-        return $this->slugSourceField ?? 'name';
+        return isset($this->slugSourceField) ? $this->slugSourceField : 'name';
     }
 
     /**
@@ -135,7 +135,7 @@ trait Sluggable
      */
     protected function shouldAutoUpdateSlug(): bool
     {
-        return $this->autoUpdateSlug ?? false;
+        return isset($this->autoUpdateSlug) ? $this->autoUpdateSlug : false;
     }
 
     /**

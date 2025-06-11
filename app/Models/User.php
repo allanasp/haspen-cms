@@ -108,6 +108,8 @@ class User extends Authenticatable
 
     /**
      * Get all spaces this user belongs to.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Space>
      */
     public function spaces(): BelongsToMany
     {
@@ -118,6 +120,8 @@ class User extends Authenticatable
 
     /**
      * Get all roles for this user across all spaces.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Role>
      */
     public function roles(): BelongsToMany
     {
@@ -190,7 +194,9 @@ class User extends Authenticatable
             return null;
         }
 
-        return Role::find($pivot->getAttribute('role_id'));
+        /** @var Role|null $role */
+        $role = Role::find($pivot->getAttribute('role_id'));
+        return $role;
     }
 
     /**
@@ -203,7 +209,9 @@ class User extends Authenticatable
         $space = $this->spaces()->where('space_id', $spaceId)->first();
         $pivot = $space?->pivot;
 
-        return $pivot?->getAttribute('custom_permissions') ?? [];
+        /** @var array<string, mixed> $permissions */
+        $permissions = $pivot?->getAttribute('custom_permissions') ?? [];
+        return $permissions;
     }
 
     /**
@@ -240,6 +248,8 @@ class User extends Authenticatable
 
     /**
      * Get user preference by key.
+     *
+     * @return mixed
      */
     public function getPreference(string $key, mixed $default = null): mixed
     {
@@ -251,6 +261,7 @@ class User extends Authenticatable
      */
     public function setPreference(string $key, mixed $value): bool
     {
+        /** @var array<string, mixed> $preferences */
         $preferences = $this->preferences ?? [];
         $preferences[$key] = $value;
 
@@ -259,6 +270,8 @@ class User extends Authenticatable
 
     /**
      * Get user metadata by key.
+     *
+     * @return mixed
      */
     public function getMetadata(string $key, mixed $default = null): mixed
     {
@@ -270,6 +283,7 @@ class User extends Authenticatable
      */
     public function setMetadata(string $key, mixed $value): bool
     {
+        /** @var array<string, mixed> $metadata */
         $metadata = $this->metadata ?? [];
         $metadata[$key] = $value;
 
@@ -289,7 +303,7 @@ class User extends Authenticatable
      */
     public function getAvatarUrl(): string
     {
-        return $this->avatar_url ?: $this->generateDefaultAvatar();
+        return $this->avatar_url !== null && $this->avatar_url !== '' ? $this->avatar_url : $this->generateDefaultAvatar();
     }
 
     /**

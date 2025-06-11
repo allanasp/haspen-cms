@@ -35,6 +35,10 @@ final class JwtService extends BaseService
         $this->ttl = (int) config('app.jwt_ttl', 3600); // 1 hour default
         $this->refreshTtl = (int) config('app.jwt_refresh_ttl', 1209600); // 2 weeks default
 
+        if (empty($secret)) {
+            throw new \InvalidArgumentException('JWT secret cannot be empty');
+        }
+        
         $this->config = Configuration::forSymmetricSigner(
             new Sha256(),
             InMemory::plainText($secret)
@@ -50,6 +54,10 @@ final class JwtService extends BaseService
     {
         $now = new \DateTimeImmutable();
 
+        if (empty($this->issuer) || empty($this->audience)) {
+            throw new \InvalidArgumentException('Issuer and audience must be configured');
+        }
+        
         $builder = $this->config->builder()
             ->issuedBy($this->issuer)
             ->permittedFor($this->audience)
@@ -61,12 +69,15 @@ final class JwtService extends BaseService
 
         // Add custom claims
         foreach ($claims as $name => $value) {
-            /** @var string $name */
+            if (!is_string($name) || empty($name)) {
+                continue;
+            }
             $builder = $builder->withClaim($name, $value);
         }
 
         $token = $builder->getToken($this->config->signer(), $this->config->signingKey());
 
+        /** @var \DateTimeImmutable|null $exp */
         $exp = $token->claims()->get('exp');
         $this->logInfo('Access token generated', [
             'user_id' => $userId,
@@ -83,6 +94,10 @@ final class JwtService extends BaseService
     {
         $now = new \DateTimeImmutable();
 
+        if (empty($this->issuer) || empty($this->audience)) {
+            throw new \InvalidArgumentException('Issuer and audience must be configured');
+        }
+        
         $token = $this->config->builder()
             ->issuedBy($this->issuer)
             ->permittedFor($this->audience)
@@ -93,6 +108,7 @@ final class JwtService extends BaseService
             ->withClaim('type', 'refresh')
             ->getToken($this->config->signer(), $this->config->signingKey());
 
+        /** @var \DateTimeImmutable|null $exp */
         $exp = $token->claims()->get('exp');
         $this->logInfo('Refresh token generated', [
             'user_id' => $userId,
@@ -158,6 +174,7 @@ final class JwtService extends BaseService
      */
     public function getUserId(Plain $token): string
     {
+        /** @var string|null $subject */
         $subject = $token->claims()->get('sub');
 
         if ($subject === null) {
@@ -172,6 +189,7 @@ final class JwtService extends BaseService
      */
     public function getTokenType(Plain $token): string
     {
+        /** @var string|null $type */
         $type = $token->claims()->get('type');
 
         if ($type === null) {
@@ -211,6 +229,7 @@ final class JwtService extends BaseService
      */
     public function getExpirationTime(Plain $token): ?\DateTimeImmutable
     {
+        /** @var \DateTimeImmutable|null $exp */
         $exp = $token->claims()->get('exp');
         return $exp instanceof \DateTimeImmutable ? $exp : null;
     }

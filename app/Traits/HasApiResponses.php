@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Traits;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
@@ -140,13 +141,8 @@ trait HasApiResponses
     /**
      * Return a paginated response.
      */
-    protected function paginated(mixed $data, string $message = 'Success'): JsonResponse
+    protected function paginated(LengthAwarePaginator $data, string $message = 'Success'): JsonResponse
     {
-        // Type check to ensure the data object has pagination methods
-        if (! method_exists($data, 'items') || ! method_exists($data, 'currentPage')) {
-            throw new \InvalidArgumentException('Data must be a paginated result');
-        }
-
         return response()->json([
             'success' => true,
             'message' => $message,

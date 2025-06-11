@@ -30,7 +30,7 @@
                 <directory name="app/Models" />
             </errorLevel>
         </PropertyNotSetInConstructor>
-        
+
         <MissingConstructor>
             <errorLevel type="suppress">
                 <directory name="app/Models" />
@@ -39,41 +39,29 @@
                 <directory name="app/Http/Resources" />
             </errorLevel>
         </MissingConstructor>
-        
+
         <UndefinedMagicMethod>
             <errorLevel type="suppress">
                 <directory name="app/Models" />
             </errorLevel>
         </UndefinedMagicMethod>
-        
+
         <UndefinedMagicPropertyFetch>
             <errorLevel type="suppress">
                 <directory name="app/Models" />
             </errorLevel>
         </UndefinedMagicPropertyFetch>
-        
-        <UndefinedMagicPropertyAssignment>
-            <errorLevel type="suppress">
-                <directory name="app/Models" />
-            </errorLevel>
-        </UndefinedMagicPropertyAssignment>
-        
-        <!-- Suppress issues with Laravel facades -->
-        <UndefinedClass>
-            <errorLevel type="suppress">
-                <referencedClass name="Illuminate\Support\Facades\*" />
-            </errorLevel>
-        </UndefinedClass>
-        
+
+
         <!-- Allow mixed types in some contexts -->
         <MixedAssignment>
             <errorLevel type="info" />
         </MixedAssignment>
-        
+
         <MixedArrayAccess>
             <errorLevel type="info" />
         </MixedArrayAccess>
-        
+
         <MixedMethodCall>
             <errorLevel type="info" />
         </MixedMethodCall>

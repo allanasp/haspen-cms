@@ -35,7 +35,9 @@ abstract class BaseRepository
      */
     public function all(array $columns = ['*']): Collection
     {
-        return $this->model->select($columns)->get();
+        /** @var Collection<int, Model> $result */
+        $result = $this->model->newQuery()->select($columns)->get();
+        return $result;
     }
 
     /**
@@ -46,7 +48,9 @@ abstract class BaseRepository
      */
     public function find(int|string $id, array $columns = ['*']): ?Model
     {
-        return $this->model->select($columns)->find($id);
+        /** @var Model|null $result */
+        $result = $this->model->newQuery()->select($columns)->find($id);
+        return $result;
     }
 
     /**
@@ -57,7 +61,9 @@ abstract class BaseRepository
      */
     public function findOrFail(int|string $id, array $columns = ['*']): Model
     {
-        return $this->model->select($columns)->findOrFail($id);
+        /** @var Model $result */
+        $result = $this->model->newQuery()->select($columns)->findOrFail($id);
+        return $result;
     }
 
     /**
@@ -69,13 +75,15 @@ abstract class BaseRepository
      */
     public function findWhere(array $criteria, array $columns = ['*']): Collection
     {
-        $query = $this->model->select($columns);
+        $query = $this->model->newQuery()->select($columns);
 
         foreach ($criteria as $field => $value) {
             $query->where($field, $value);
         }
 
-        return $query->get();
+        /** @var Collection<int, Model> $result */
+        $result = $query->get();
+        return $result;
     }
 
     /**
@@ -87,13 +95,15 @@ abstract class BaseRepository
      */
     public function findWhereFirst(array $criteria, array $columns = ['*']): ?Model
     {
-        $query = $this->model->select($columns);
+        $query = $this->model->newQuery()->select($columns);
 
         foreach ($criteria as $field => $value) {
             $query->where($field, $value);
         }
 
-        return $query->first();
+        /** @var Model|null $result */
+        $result = $query->first();
+        return $result;
     }
 
     /**
@@ -104,7 +114,9 @@ abstract class BaseRepository
      */
     public function create(array $data): Model
     {
-        return $this->model->create($data);
+        /** @var Model $result */
+        $result = $this->model->newQuery()->create($data);
+        return $result;
     }
 
     /**
@@ -177,7 +189,9 @@ abstract class BaseRepository
      */
     public function paginate(int $perPage = 15, array $columns = ['*']): LengthAwarePaginator
     {
-        return $this->model->select($columns)->paginate($perPage);
+        /** @var LengthAwarePaginator $result */
+        $result = $this->model->newQuery()->select($columns)->paginate($perPage);
+        return $result;
     }
 
     /**
@@ -189,13 +203,15 @@ abstract class BaseRepository
      */
     public function paginateWhere(array $criteria, int $perPage = 15, array $columns = ['*']): LengthAwarePaginator
     {
-        $query = $this->model->select($columns);
+        $query = $this->model->newQuery()->select($columns);
 
         foreach ($criteria as $field => $value) {
             $query->where($field, $value);
         }
 
-        return $query->paginate($perPage);
+        /** @var LengthAwarePaginator $result */
+        $result = $query->paginate($perPage);
+        return $result;
     }
 
     /**
@@ -211,7 +227,9 @@ abstract class BaseRepository
      */
     public function count(): int
     {
-        return $this->model->count();
+        /** @var int $result */
+        $result = $this->model->newQuery()->count();
+        return $result;
     }
 
     /**
@@ -242,8 +260,6 @@ abstract class BaseRepository
         $query = $this->model->newQuery();
 
         foreach ($criteria as $field => $value) {
-            /** @var string $field */
-            /** @var mixed $value */
             $query->where($field, $value);
         }
 
