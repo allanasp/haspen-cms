@@ -56,7 +56,7 @@ class BaseResource extends JsonResource
     public function withPaginationMeta(): array
     {
         // Check if resource has pagination methods
-        if (is_object($this->resource) && method_exists($this->resource, 'currentPage')) {
+        if (\is_object($this->resource) && method_exists($this->resource, 'currentPage')) {
             return [
                 'meta' => [
                     'current_page' => $this->resource->currentPage(),

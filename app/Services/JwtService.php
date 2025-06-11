@@ -10,7 +10,6 @@ use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Token\Plain;
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
 use Lcobucci\JWT\Validation\Constraint\PermittedFor;
-use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 use Lcobucci\JWT\Validation\RequiredConstraintsViolated;
 
 /**
@@ -208,6 +207,7 @@ class JwtService extends BaseService
      */
     /**
      * @param array<string, mixed> $claims
+     *
      * @return array<string, int|string>
      */
     public function refreshAccessToken(string $refreshTokenString, array $claims = []): array
@@ -242,6 +242,7 @@ class JwtService extends BaseService
      */
     /**
      * @param array<string, mixed> $claims
+     *
      * @return array<string, int|string>
      */
     public function createTokenPair(int|string $userId, array $claims = []): array

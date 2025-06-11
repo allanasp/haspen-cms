@@ -286,6 +286,7 @@ class Component extends Model
      * Validate component data against schema.
      *
      * @param array<string, mixed> $data
+     *
      * @return array<string, string>
      */
     public function validateData(array $data): array
