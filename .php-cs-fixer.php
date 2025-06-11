@@ -21,7 +21,8 @@ $finder = Finder::create()
     ->name('*.php')
     ->notName('*.blade.php')
     ->ignoreDotFiles(true)
-    ->ignoreVCS(true);
+    ->ignoreVCS(true)
+    ->exclude('vendor');
 
 $config = new Config();
 

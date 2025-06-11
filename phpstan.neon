@@ -12,6 +12,7 @@ parameters:
 
     # Exclude certain paths
     excludePaths:
+        - vendor/*
         analyseAndScan:
             - 'app/Http/Middleware/*'
             - 'bootstrap'

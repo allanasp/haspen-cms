@@ -17,7 +17,7 @@ final class ComponentFactory extends Factory
      * @var class-string<\App\Models\Component>
      */
     protected $model = \App\Models\Component::class;
-{
+
     /**
      * Define the model's default state.
      *

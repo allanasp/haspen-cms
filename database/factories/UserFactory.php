@@ -18,12 +18,12 @@ final class UserFactory extends Factory
      *
      * @var class-string<\App\Models\User>
      */
-    protected $model = \App\Models\User::class;
-{
-    /**
-     * The current password being used by the factory.
-     */
-    protected static ?string $password;
+protected $model = \App\Models\User::class;
+
+/**
+ * The current password being used by the factory.
+ */
+protected static ?string $password;
 
     /**
      * Define the model's default state.

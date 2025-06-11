@@ -98,13 +98,13 @@ class Component extends Model
     /**
      * Sluggable configuration.
      */
-    protected string $slugSourceField = 'name';
+    protected string $slugSourceField = 'technical_name';
     protected bool $autoUpdateSlug = false;
 
     /**
-     * Cacheable configuration.
+     * Cache TTL in seconds (6 hours).
      */
-    protected int $cacheTtl = 3600;
+    protected int $cacheTtl = 21600;
 
     /**
      * The attributes that should be hidden for serialization.
@@ -115,18 +115,6 @@ class Component extends Model
         'id',
         'space_id',
     ];
-
-    /**
-     * Sluggable configuration.
-     */
-    protected string $slugSourceField = 'technical_name';
-
-    protected bool $autoUpdateSlug = false;
-
-    /**
-     * Cache TTL in seconds (6 hours).
-     */
-    protected int $cacheTtl = 21600;
 
     /**
      * Available component statuses.

@@ -17,7 +17,7 @@ final class StoryFactory extends Factory
      * @var class-string<\App\Models\Story>
      */
     protected $model = \App\Models\Story::class;
-{
+
     /**
      * Define the model's default state.
      *

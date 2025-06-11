@@ -16,15 +16,15 @@ final class SpaceFactory extends Factory
      *
      * @var class-string<\App\Models\Space>
      */
-    protected $model = \App\Models\Space::class;
+protected $model = \App\Models\Space::class;
+
+/**
+ * Define the model's default state.
+ *
+ * @return array<string, mixed>
+ */
+public function definition(): array
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
-    public function definition(): array
-    {
         $name = $this->faker->company();
 
         return [
