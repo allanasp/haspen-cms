@@ -310,6 +310,11 @@ Represents content pages, posts, and folders in the headless CMS. Stories use a 
 - **Access Control**: Role-based content access restrictions
 - **URL Management**: Automatic slug generation and full path resolution
 - **Folder Support**: Organize content into folders for better structure
+- **Content Locking**: Prevent concurrent editing conflicts with session-based locks
+- **Content Templates**: Create reusable story templates for faster content creation
+- **Version Management**: Complete version history with restore capabilities
+- **Advanced Search**: Full-text search with component filtering and analytics
+- **Translation Workflow**: Smart translation sync and completion tracking
 
 ### Usage Examples:
 
@@ -469,6 +474,185 @@ foreach ($story->getComponentsByType('form') as $formComponent) {
         // Handle validation errors
     }
 }
+```
+
+#### Content Locking for Concurrent Editing
+```php
+// Lock story for editing (30 minutes default)
+$user = Auth::user();
+$sessionId = session()->getId();
+
+if ($story->lock($user, $sessionId, 30)) {
+    echo "Story locked successfully";
+    
+    // Check lock status
+    $lockInfo = $story->getLockInfo();
+    echo "Locked by: " . $lockInfo['locker']['name'];
+    echo "Time remaining: " . $lockInfo['time_remaining'] . " minutes";
+    
+    // Extend lock if needed
+    $story->extendLock($user, 15); // Add 15 more minutes
+    
+    // Unlock when done
+    $story->unlock($user, $sessionId);
+} else {
+    // Story is locked by someone else
+    $lockInfo = $story->getLockInfo();
+    echo "Story locked by: " . $lockInfo['locker']['name'];
+}
+
+// Check if user can edit (not locked by someone else)
+if (!$story->isLockedByOther($user)) {
+    // User can edit this story
+}
+
+// Cleanup expired locks (can be run in scheduled tasks)
+Story::cleanupAllExpiredLocks();
+```
+
+#### Content Templates
+```php
+// Create template from existing story
+$template = $story->createTemplate(
+    'Blog Post Template',
+    'Standard template for blog posts with hero and content sections'
+);
+
+// Save template to database for reuse
+$templateStory = Story::create([
+    'name' => $template['name'],
+    'content' => $template['content'],
+    'meta_data' => array_merge($template['meta_data'], [
+        'is_template' => true,
+        'template_description' => $template['description']
+    ]),
+    'status' => Story::STATUS_DRAFT
+]);
+
+// Create new story from template
+$templateData = [
+    'name' => 'Product Landing Template',
+    'content' => ['body' => [...]],
+    'meta_data' => ['template_category' => 'marketing']
+];
+
+$newStoryData = Story::createFromTemplate($templateData, [
+    'name' => 'iPhone 15 Landing Page',
+    'slug' => 'iphone-15-landing'
+]);
+
+$newStory = Story::create($newStoryData);
+
+// Get available templates
+$templates = $story->getAvailableTemplates();
+foreach ($templates as $template) {
+    echo "Template: " . $template['name'] . " (" . $template['type'] . ")";
+}
+```
+
+#### Enhanced Translation Workflow
+```php
+// Create translation for existing story
+$user = Auth::user();
+$translationData = [
+    'name' => 'Mi Historia en Español',
+    'slug' => 'mi-historia-es',
+    'content' => [
+        'body' => [
+            [
+                '_uid' => $originalStory->content['body'][0]['_uid'], // Keep same UID
+                'component' => 'hero',
+                'title' => 'Título en Español',
+                'description' => 'Descripción en español'
+            ]
+        ]
+    ]
+];
+
+$spanishStory = $originalStory->createTranslation('es', $translationData, $user);
+
+// Get translation status for all languages
+$status = $originalStory->getTranslationStatus();
+foreach ($status as $language => $info) {
+    echo "{$language}: {$info['completion_percentage']}% complete";
+    if ($info['needs_sync']) {
+        echo " (needs sync)";
+    }
+}
+
+// Get untranslated fields
+$untranslated = $spanishStory->getUntranslatedFields($originalStory);
+if (!empty($untranslated['content'])) {
+    echo "Fields needing translation: " . count($untranslated['content']);
+}
+
+// Sync translation structure from original
+$spanishStory->syncTranslationContent($originalStory, ['content', 'meta_data']);
+
+// Check if stories are translations of each other
+if ($spanishStory->isTranslationOf($originalStory)) {
+    $allTranslations = $originalStory->getAllTranslations();
+    echo "Total translations: " . $allTranslations->count();
+}
+```
+
+#### Advanced Search and Analytics
+```php
+// Use StoryService for advanced search capabilities
+$storyService = app(StoryService::class);
+
+// Search with different modes
+$stories = $storyService->getPaginatedStories($space, [
+    'search' => 'product launch',
+    'search_mode' => 'comprehensive',
+    'search_components' => ['hero', 'product_card'],
+    'search_tags' => ['featured', 'new-product']
+]);
+
+// Get search suggestions
+$suggestions = $storyService->getSearchSuggestions($space, 'prod', 10);
+foreach ($suggestions as $suggestion) {
+    echo $suggestion['type'] . ": " . $suggestion['value'];
+}
+
+// Get search analytics
+$stats = $storyService->getSearchStats($space);
+echo "Total stories: " . $stats['total_stories'];
+echo "Popular components: ";
+foreach ($stats['popular_components'] as $component) {
+    echo $component['component'] . " (used " . $component['usage_count'] . " times)";
+}
+```
+
+#### Version Management
+```php
+// Versions are automatically created when content changes
+// Get all versions of a story
+$versions = $story->versions()->orderBy('created_at', 'desc')->get();
+
+foreach ($versions as $version) {
+    echo "Version {$version->version_number}: {$version->reason}";
+    echo "Created by: {$version->creator->name}";
+    echo "Date: {$version->created_at}";
+}
+
+// Using VersionManager service for advanced operations
+$versionManager = app(VersionManager::class);
+
+// Create version with reason
+$versionManager->createVersion($story, $user, 'Updated hero section with new branding');
+
+// Get version comparison
+$comparison = $versionManager->compareVersions($story, $version1->id, $version2->id);
+echo "Changes: " . json_encode($comparison['changes']);
+
+// Restore from version
+$versionManager->restoreFromVersion($story, $version->id, $user, 'Restored due to content error');
+
+// Get version statistics
+$stats = $versionManager->getVersionStats($story);
+echo "Total versions: " . $stats['total_versions'];
+echo "Average versions per month: " . $stats['avg_versions_per_month'];
 ```
 
 #### SEO and URL Management
@@ -657,6 +841,43 @@ if (empty($errors)) {
         echo "Error in {$field}: {$error}\n";
     }
 }
+
+// Validate with invalid data
+$invalidData = [
+    'title' => '', // Required field missing
+    'subtitle' => str_repeat('x', 300), // Exceeds max_length
+    'height' => 'invalid_value', // Not in allowed options
+    'email_field' => 'not-an-email' // Invalid email format
+];
+
+$errors = $heroComponent->validateData($invalidData);
+// Returns: 
+// [
+//     'title' => "Field 'title' is required",
+//     'subtitle' => "Value must not exceed 250 characters", 
+//     'height' => "Value must be one of the allowed options",
+//     'email_field' => "Value must be a valid email address"
+// ]
+
+// Validate nested components (blocks field)
+$nestedContent = [
+    'sections' => [
+        [
+            '_uid' => 'block-1',
+            'component' => 'text_block',
+            'content' => 'Some text content'
+        ],
+        [
+            '_uid' => 'block-2', 
+            'component' => 'image_block',
+            'image' => ['id' => 456, 'alt' => 'Image description']
+        ]
+    ]
+];
+
+// Component with blocks field will recursively validate nested components
+$pageComponent = Component::where('technical_name', 'page')->first();
+$nestedErrors = $pageComponent->validateData($nestedContent);
 
 // Get preview text
 $preview = $heroComponent->getPreview($contentData);

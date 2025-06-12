@@ -1,6 +1,6 @@
 # Development Guide
 
-Advanced development workflows, testing strategies, and debugging techniques for the Headless CMS.
+Advanced development workflows, testing strategies, and debugging techniques for the Headless CMS. This guide includes comprehensive information about the new Story Management System features including content locking, templates, advanced search, and translation workflows.
 
 ## Table of Contents
 
@@ -176,9 +176,18 @@ tests/
 │   │   ├── Auth/      # Authentication tests
 │   │   ├── Cdn/       # CDN API tests
 │   │   └── Management/ # Management API tests
+│       │   ├── StoryLockingTest.php
+│       │   ├── ContentTemplatesTest.php
+│       │   ├── AdvancedSearchTest.php
+│       │   └── TranslationWorkflowTest.php
 ├── Unit/              # Unit tests
 │   ├── Models/        # Model tests
+│   │   ├── ComponentValidationTest.php
+│   │   └── StoryFeaturesTest.php
 │   ├── Services/      # Service tests
+│   │   ├── StoryServiceTest.php
+│   │   ├── VersionManagerTest.php
+│   │   └── ContentRendererTest.php
 │   └── Middleware/    # Middleware tests
 └── TestCase.php       # Base test class
 ```
@@ -194,11 +203,22 @@ composer test
 ./vendor/bin/phpunit --testsuite=Feature
 ./vendor/bin/phpunit --testsuite=Unit
 
+# Run specific feature tests
+./vendor/bin/phpunit tests/Feature/Api/Management/StoryLockingTest.php
+./vendor/bin/phpunit tests/Feature/Api/Management/ContentTemplatesTest.php
+
 # Run with coverage
 ./vendor/bin/phpunit --coverage-html coverage
 
+# Test story management features
+./vendor/bin/phpunit --group=story-management
+
 # Parallel testing
 ./vendor/bin/paratest
+
+# Quick validation tests (custom scripts)
+php verify-database.php
+php test-story-features.php
 ```
 
 ### Test Database
@@ -271,7 +291,7 @@ class StoryControllerTest extends TestCase
 }
 ```
 
-#### Model Test Example
+#### Component Validation Test Example
 
 ```php
 <?php
@@ -281,9 +301,9 @@ namespace Tests\Unit\Models;
 use App\Models\Component;
 use Tests\TestCase;
 
-class ComponentTest extends TestCase
+class ComponentValidationTest extends TestCase
 {
-    public function test_can_validate_data_against_schema(): void
+    public function test_validates_required_fields(): void
     {
         $component = Component::factory()->create([
             'schema' => [
@@ -293,10 +313,35 @@ class ComponentTest extends TestCase
         ]);
 
         $validData = ['title' => 'Test Title', 'description' => 'Test description'];
-        $this->assertTrue($component->validateData($validData));
+        $errors = $component->validateData($validData);
+        $this->assertEmpty($errors);
 
         $invalidData = ['description' => 'Missing required title'];
-        $this->assertFalse($component->validateData($invalidData));
+        $errors = $component->validateData($invalidData);
+        $this->assertArrayHasKey('title', $errors);
+        $this->assertStringContains('required', $errors['title']);
+    }
+    
+    public function test_validates_field_types(): void
+    {
+        $component = Component::factory()->create([
+            'schema' => [
+                'email' => ['type' => 'email', 'required' => true],
+                'count' => ['type' => 'number', 'min' => 0, 'max' => 100],
+                'featured' => ['type' => 'boolean', 'required' => false]
+            ]
+        ]);
+
+        $invalidData = [
+            'email' => 'invalid-email',
+            'count' => 150, // over max
+            'featured' => 'not_boolean'
+        ];
+        
+        $errors = $component->validateData($invalidData);
+        $this->assertArrayHasKey('email', $errors);
+        $this->assertArrayHasKey('count', $errors);
+        $this->assertArrayHasKey('featured', $errors);
     }
 }
 ```
@@ -408,6 +453,24 @@ php artisan make:controller Api/V1/Management/ExampleController
 // routes/api.php
 Route::prefix('v1/spaces/{space_id}')->group(function () {
     Route::apiResource('examples', ExampleController::class);
+    
+    // Story management features
+    Route::prefix('stories/{story}')->group(function () {
+        Route::post('lock', [StoryController::class, 'lock']);
+        Route::delete('lock', [StoryController::class, 'unlock']);
+        Route::put('lock', [StoryController::class, 'extendLock']);
+        Route::get('lock', [StoryController::class, 'getLockStatus']);
+        
+        Route::post('create-template', [StoryController::class, 'createTemplate']);
+        Route::post('translations', [StoryController::class, 'createTranslation']);
+        Route::get('translations', [StoryController::class, 'getTranslations']);
+        Route::post('sync-translation', [StoryController::class, 'syncTranslation']);
+    });
+    
+    Route::get('stories/templates', [StoryController::class, 'getTemplates']);
+    Route::post('stories/from-template', [StoryController::class, 'createFromTemplate']);
+    Route::get('stories/search/suggestions', [StoryController::class, 'getSearchSuggestions']);
+    Route::get('stories/search/stats', [StoryController::class, 'getSearchStats']);
 });
 ```
 
@@ -677,18 +740,44 @@ if (!$user->can('publish', $story)) {
 1. **Service Classes**
 
 ```php
-// Business logic in services
-class StoryService
+// Advanced story management service
+class StoryService extends BaseService
 {
+    public function __construct(
+        private VersionManager $versionManager,
+        private ContentRenderer $contentRenderer
+    ) {}
+    
     public function publishStory(Story $story, ?Carbon $scheduledAt = null): Story
     {
+        // Validate content before publishing
+        $errors = $this->validateStoryContent($story->content);
+        if (!empty($errors)) {
+            throw new ValidationException('Story content validation failed', $errors);
+        }
+        
         $story->status = $scheduledAt ? 'scheduled' : 'published';
         $story->published_at = $scheduledAt ?? now();
         $story->save();
-
+        
+        // Create version snapshot
+        $this->versionManager->createVersion($story, auth()->user(), 'Published story');
+        
         event(new StoryPublished($story));
-
+        
         return $story;
+    }
+    
+    public function getPaginatedStories(Space $space, array $filters = []): LengthAwarePaginator
+    {
+        $query = $space->stories();
+        
+        // Apply advanced search if provided
+        if (isset($filters['search'])) {
+            $query = $this->applyAdvancedSearch($query, $filters);
+        }
+        
+        return $query->paginate($filters['per_page'] ?? 25);
     }
 }
 ```
@@ -722,13 +811,61 @@ class StoryRepository extends BaseRepository
    - Integration tests: 20%  
    - E2E tests: 10%
 
-2. **Test Naming**
+2. **Story Management Feature Testing**
 
 ```php
-// Descriptive test names
-public function test_user_can_create_story_with_valid_data(): void
-public function test_unauthorized_user_cannot_access_management_api(): void
-public function test_rate_limit_is_enforced_for_cdn_endpoints(): void
+// Content locking tests
+public function test_user_can_lock_story_for_editing(): void
+public function test_locked_story_prevents_concurrent_edits(): void
+public function test_lock_expires_automatically(): void
+
+// Template system tests
+public function test_can_create_template_from_story(): void
+public function test_can_create_story_from_template(): void
+public function test_template_preserves_structure(): void
+
+// Advanced search tests
+public function test_can_search_stories_by_content(): void
+public function test_can_filter_by_component_type(): void
+public function test_search_suggestions_work(): void
+
+// Translation workflow tests
+public function test_can_create_translation(): void
+public function test_translation_sync_detects_changes(): void
+public function test_translation_completion_calculated(): void
+
+// Component validation tests
+public function test_component_validates_required_fields(): void
+public function test_component_validates_field_types(): void
+public function test_nested_component_validation(): void
+```
+
+3. **Test Data Setup**
+
+```php
+// Enhanced test factories for new features
+class StoryFactory extends Factory
+{
+    public function withLock(User $user = null): static
+    {
+        return $this->state([
+            'locked_by' => $user?->id ?? User::factory(),
+            'locked_at' => now(),
+            'lock_expires_at' => now()->addMinutes(30),
+            'lock_session_id' => Str::uuid()
+        ]);
+    }
+    
+    public function asTemplate(): static
+    {
+        return $this->state([
+            'meta_data' => [
+                'is_template' => true,
+                'template_category' => 'blog'
+            ]
+        ]);
+    }
+}
 ```
 
 3. **Database Testing**
@@ -744,6 +881,86 @@ class ExampleTest extends TestCase
     // Test implementation
 }
 ```
+
+### Story Management Feature Development
+
+#### Testing New Features
+
+1. **Database Verification**
+
+```bash
+# Run database structure verification
+php verify-database.php
+
+# Expected output:
+# ✅ stories - Stories table with locking fields
+# ✅ story_versions - Story versions for version management
+# ✅ components - Components for schema validation
+# ✅ Content locking fields present
+```
+
+2. **Component Validation Testing**
+
+```bash
+# Test component validation directly
+php test-story-features.php
+
+# Expected output:
+# ✅ PASS: Valid data validation passed
+# ✅ PASS: Required field validation works
+# ✅ PASS: Type validation works
+```
+
+3. **API Endpoint Testing**
+
+```bash
+# Start development server
+php artisan serve
+
+# Test story locking
+curl -X POST http://localhost:8000/api/v1/spaces/{space_id}/stories/{story_id}/lock \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -H "X-Session-ID: $SESSION_ID" \
+  -d '{"duration_minutes": 30}'
+
+# Test template creation
+curl -X POST http://localhost:8000/api/v1/spaces/{space_id}/stories/{story_id}/create-template \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -d '{"name": "Blog Template", "description": "Standard blog post template"}'
+
+# Test advanced search
+curl "http://localhost:8000/api/v1/spaces/{space_id}/stories?search=blog&search_mode=comprehensive" \
+  -H "Authorization: Bearer $JWT_TOKEN"
+```
+
+#### Key Development Endpoints
+
+| Feature | Endpoint | Method | Description |
+|---------|----------|---------|-------------|
+| Content Locking | `/stories/{id}/lock` | POST | Lock story for editing |
+| Content Locking | `/stories/{id}/lock` | DELETE | Unlock story |
+| Content Templates | `/stories/templates` | GET | List available templates |
+| Content Templates | `/stories/{id}/create-template` | POST | Create template from story |
+| Advanced Search | `/stories/search/suggestions` | GET | Get search suggestions |
+| Translation | `/stories/{id}/translations` | POST | Create translation |
+| Translation | `/stories/{id}/sync-translation` | POST | Sync translation structure |
+
+#### Development Workflow
+
+1. **Feature Development Cycle**
+   - Update models with new functionality
+   - Add database migrations if needed
+   - Implement service layer logic
+   - Create API endpoints
+   - Add comprehensive tests
+   - Update API documentation
+
+2. **Quality Assurance**
+   - Run static analysis: `composer analyse`
+   - Run all tests: `composer test`
+   - Verify database: `php verify-database.php`
+   - Test core features: `php test-story-features.php`
+   - Manual API testing with Postman/curl
 
 ---
 

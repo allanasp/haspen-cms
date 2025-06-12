@@ -19,7 +19,10 @@ The headless CMS is built on Laravel 11.x with a focus on:
 
 - **Three-Tier API**: Content Delivery, Management, and Authentication APIs
 - **Multi-tenancy**: Complete data isolation between spaces (tenants)
-- **Component-based content**: Storyblok-style content management with JSON schemas
+- **Component-based content**: Storyblok-style content management with JSON schemas and validation
+- **Content Management**: Advanced features including locking, templates, and version management
+- **Translation Workflow**: Smart translation sync with completion tracking
+- **Advanced Search**: Full-text search with component filtering and analytics
 - **Modern PHP**: PHP 8.3+ with strict typing and advanced features
 - **Performance**: Redis caching, PostgreSQL with JSONB, and optimized queries
 - **Developer Experience**: Comprehensive traits, OpenAPI documentation, and type safety
@@ -45,7 +48,10 @@ The headless CMS is built on Laravel 11.x with a focus on:
 ┌─────────▼───────┐    ┌──────────────┐    ┌─────────────────┐
 │   Application   │    │  PostgreSQL  │    │     Redis       │
 │   Layer         │◄──►│   Database   │    │   (Cache/       │
-│                 │    │              │    │   Sessions)     │
+│  ┌─────────────┐ │    │              │    │   Sessions/     │
+│  │  Services   │ │    │              │    │   Locks)        │
+│  │  Layer      │ │    │              │    │                 │
+│  └─────────────┘ │    │              │    │                 │
 └─────────────────┘    └──────────────┘    └─────────────────┘
 ```
 
@@ -90,14 +96,22 @@ The API is organized into three distinct tiers, each with specific purposes and 
 │ • Rate limit: 120 req/min          │
 │ • Full CRUD operations             │
 │ • Content validation               │
+│ • Advanced content features        │
 └─────────────────────────────────────┘
 ```
 
-**Endpoints:**
+**Core Endpoints:**
 - Stories: Create, read, update, delete, publish
 - Components: Schema management and validation
 - Assets: Upload, transform, organize
 - Users: Invite, permissions, roles
+
+**Advanced Features:**
+- Content Locking: Prevent concurrent editing conflicts
+- Content Templates: Reusable story structures
+- Advanced Search: Full-text with component filtering
+- Translation Management: Smart sync and completion tracking
+- Version Management: Complete version history with restore
 
 #### 3. Authentication API (`/api/v1/auth/`)
 
@@ -171,7 +185,14 @@ components (
 stories (
     id, space_id, uuid, name, slug, content, parent_id,
     language, translation_group_id, status, position,
-    published_at, scheduled_at, meta_title, meta_description, ...
+    published_at, scheduled_at, meta_title, meta_description,
+    locked_by, locked_at, lock_expires_at, lock_session_id, ...
+)
+
+-- Version management
+story_versions (
+    id, story_id, version_number, content_snapshot,
+    reason, created_by, created_at, meta_snapshot, ...
 )
 
 -- Asset management
@@ -447,78 +468,175 @@ $stories = Story::simplePaginate(25); // Skip total count for performance
 ```php
 class Component extends Model
 {
-    public function validateData(array $data): bool
+    public function validateData(array $data): array
     {
+        $errors = [];
+        
         foreach ($this->schema as $fieldName => $fieldConfig) {
-            if ($fieldConfig['required'] ?? false) {
-                if (!isset($data[$fieldName]) || empty($data[$fieldName])) {
-                    return false;
-                }
+            $value = $data[$fieldName] ?? null;
+            $isRequired = $fieldConfig['required'] ?? false;
+            
+            // Check required fields
+            if ($isRequired && ($value === null || $value === '')) {
+                $errors[$fieldName] = "Field '{$fieldName}' is required";
+                continue;
             }
             
-            if (isset($data[$fieldName])) {
-                if (!$this->validateFieldType($data[$fieldName], $fieldConfig)) {
-                    return false;
-                }
+            // Skip validation if field is not required and empty
+            if (!$isRequired && ($value === null || $value === '')) {
+                continue;
+            }
+            
+            // Validate based on field type
+            $error = $this->validateFieldByType($value, $fieldConfig['type'], $fieldConfig);
+            if ($error) {
+                $errors[$fieldName] = $error;
             }
         }
         
-        return true;
+        return $errors;
     }
 }
 ```
 
-### Supported Field Types
+### Advanced Field Validation
 
 ```php
-private function validateFieldType(mixed $value, array $config): bool
+private function validateFieldByType(mixed $value, string $fieldType, array $fieldConfig): ?string
 {
-    return match ($config['type']) {
-        'text' => is_string($value) && strlen($value) <= ($config['max_length'] ?? 255),
-        'textarea' => is_string($value),
-        'richtext' => is_string($value) && $this->validateHtml($value),
-        'number' => is_numeric($value),
-        'boolean' => is_bool($value),
-        'datetime' => $this->validateDateTime($value),
-        'asset' => $this->validateAssetReference($value),
-        'option' => in_array($value, $config['options'] ?? []),
-        'options' => is_array($value) && !array_diff($value, $config['options'] ?? []),
-        'blocks' => is_array($value) && $this->validateBlocks($value),
-        'link' => $this->validateLink($value),
-        'email' => filter_var($value, FILTER_VALIDATE_EMAIL) !== false,
-        'url' => filter_var($value, FILTER_VALIDATE_URL) !== false,
-        default => true
+    return match ($fieldType) {
+        'text', 'textarea', 'markdown', 'richtext' => $this->validateString($value, $fieldConfig),
+        'number' => $this->validateNumber($value, $fieldConfig),
+        'boolean' => $this->validateBoolean($value),
+        'email' => $this->validateEmail($value),
+        'url' => $this->validateUrl($value),
+        'date', 'datetime' => $this->validateDate($value),
+        'select' => $this->validateSelect($value, $fieldConfig),
+        'asset' => $this->validateAsset($value),
+        'blocks' => $this->validateBlocks($value),
+        'component' => $this->validateComponent($value),
+        default => null,
     };
+}
+
+protected function validateString(mixed $value, array $field): ?string
+{
+    if (!is_string($value)) {
+        return 'Value must be a string';
+    }
+
+    if (isset($field['min_length']) && strlen($value) < $field['min_length']) {
+        return "Value must be at least {$field['min_length']} characters";
+    }
+
+    if (isset($field['max_length']) && strlen($value) > $field['max_length']) {
+        return "Value must not exceed {$field['max_length']} characters";
+    }
+
+    return null;
+}
+```
+
+## Service Architecture
+
+### Core Services
+
+```php
+// Content Management Services
+StoryService::class          // Advanced story operations and search
+VersionManager::class        // Version history and restoration
+ContentRenderer::class       // Content processing and rendering
+SlugGenerator::class         // URL-friendly slug generation
+
+// Infrastructure Services  
+JwtService::class           // JWT token management
+BaseService::class          // Common service functionality
+BaseRepository::class       // Data access abstraction
+```
+
+### StoryService - Advanced Content Operations
+
+```php
+class StoryService extends BaseService
+{
+    // Advanced search with multiple modes
+    public function getPaginatedStories(Space $space, array $filters = []): LengthAwarePaginator
+    
+    // Search suggestions for auto-complete
+    public function getSearchSuggestions(Space $space, string $query, int $limit = 10): array
+    
+    // Search analytics and statistics
+    public function getSearchStats(Space $space): array
+    
+    // Content validation with detailed errors
+    protected function validateStoryContent(array $content): array
+}
+```
+
+### VersionManager - Content History
+
+```php
+class VersionManager
+{
+    // Create version with automatic change detection
+    public function createVersion(Story $story, User $user, string $reason = null): StoryVersion
+    
+    // Compare two versions with detailed diff
+    public function compareVersions(Story $story, int $version1Id, int $version2Id): array
+    
+    // Restore story from specific version
+    public function restoreFromVersion(Story $story, int $versionId, User $user, string $reason = null): bool
+    
+    // Get version statistics
+    public function getVersionStats(Story $story): array
 }
 ```
 
 ## Data Flow
 
-### Content Creation Flow
+### Enhanced Content Creation Flow
 
 ```
 1. Component Definition
    ├─ Admin creates component schema
-   ├─ Schema validation and storage
+   ├─ Advanced schema validation (20+ field types)
+   ├─ Version tracking for schema changes
    └─ Cache invalidation
 
-2. Story Creation
+2. Story Creation with Locking
+   ├─ Content locking check (prevent conflicts)
    ├─ Content validation against schema
    ├─ Multi-tenant scoping
    ├─ Slug uniqueness check
+   ├─ Version creation (automatic)
    └─ Draft storage
 
-3. Publishing Flow
+3. Template System
+   ├─ Template creation from existing stories
+   ├─ Template storage and categorization
+   ├─ Template instantiation with customization
+   └─ Template-based content generation
+
+4. Publishing Flow
    ├─ Final content validation
+   ├─ Lock verification and release
    ├─ Status change to 'published'
+   ├─ Version snapshot creation
    ├─ Search index update
    └─ CDN cache warming
 
-4. Content Delivery
+5. Translation Workflow
+   ├─ Translation creation with structure sync
+   ├─ Completion percentage calculation
+   ├─ Change detection and sync alerts
+   └─ Translation status tracking
+
+6. Content Delivery
    ├─ CDN API request
-   ├─ Cache check
+   ├─ Multi-layer cache check
    ├─ Database query (if cache miss)
-   └─ Response transformation
+   ├─ Content rendering and transformation
+   └─ Response with optimized assets
 ```
 
 ### Asset Processing Flow
@@ -543,28 +661,68 @@ private function validateFieldType(mixed $value, array $config): bool
    └─ Optimized delivery
 ```
 
-### Multi-Tenant Request Flow
+### Enhanced Multi-Tenant Request Flow
 
 ```
 1. Request Routing
    ├─ Space identification (subdomain/parameter/header)
    ├─ Space validation and status check
+   ├─ Resource limit verification
    └─ Context setting
 
 2. Authentication (if required)
    ├─ JWT token validation
    ├─ User space access verification
-   └─ Permission checking
+   ├─ Role-based permission checking
+   └─ Session management
 
-3. Data Access
+3. Content Locking (for editing operations)
+   ├─ Lock status verification
+   ├─ Conflict detection
+   ├─ Lock acquisition/extension
+   └─ Session-based lock management
+
+4. Data Access with Advanced Features
    ├─ Automatic space scoping
-   ├─ Query execution
-   └─ Result filtering
+   ├─ Advanced search processing
+   ├─ Content validation
+   ├─ Version management
+   └─ Result filtering and transformation
 
-4. Response
+5. Response
    ├─ Resource transformation
+   ├─ Translation metadata
+   ├─ Lock information
    ├─ Rate limit headers
-   └─ Logging and monitoring
+   └─ Comprehensive logging and monitoring
+```
+
+### Search and Analytics Flow
+
+```
+1. Search Request Processing
+   ├─ Query parsing and sanitization
+   ├─ Search mode determination (exact, fulltext, comprehensive)
+   ├─ Component and tag filtering
+   └─ Permission-based result filtering
+
+2. Search Execution
+   ├─ Database full-text search (PostgreSQL)
+   ├─ JSONB content indexing
+   ├─ Relevance scoring
+   └─ Result ranking and pagination
+
+3. Search Analytics
+   ├─ Query statistics collection
+   ├─ Popular component tracking
+   ├─ Search suggestion generation
+   └─ Performance metrics
+
+4. Response Enhancement
+   ├─ Result highlighting
+   ├─ Suggestion recommendations
+   ├─ Search statistics
+   └─ Cached response optimization
 ```
 
 ---

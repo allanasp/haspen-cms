@@ -293,9 +293,18 @@ GET /api/v1/spaces/{space_id}/stories
 |-----------|------|-------------|
 | `page` | integer | Page number |
 | `per_page` | integer | Items per page (max: 100) |
-| `search` | string | Search in story name and slug |
+| `search` | string | Search in story name, slug, and content |
+| `search_mode` | string | Search mode: `exact`, `fulltext`, `content_only`, `metadata_only`, `comprehensive` |
+| `search_components` | array | Filter by specific components |
+| `search_tags` | array | Filter by content tags |
 | `status` | string | Filter by status: `draft`, `in_review`, `published`, `scheduled`, `archived` |
 | `starts_with` | string | Filter by slug prefix |
+| `parent_id` | string | Filter by parent story (use 'null' for root stories) |
+| `language` | string | Filter by language |
+| `created_after` | string | Filter by creation date (ISO 8601) |
+| `updated_after` | string | Filter by update date (ISO 8601) |
+| `sort_by` | string | Sort field: `created_at`, `updated_at`, `name`, `published_at` |
+| `sort_order` | string | Sort direction: `asc`, `desc` |
 
 #### Create Story
 
@@ -369,6 +378,434 @@ PUT /api/v1/spaces/{space_id}/stories/{story_id}
 
 ```http
 DELETE /api/v1/spaces/{space_id}/stories/{story_id}
+```
+
+#### Publish Story
+
+```http
+POST /api/v1/spaces/{space_id}/stories/{story_id}/publish
+```
+
+**Request Body:**
+
+```json
+{
+  "published_at": "2024-01-20T10:00:00Z",
+  "schedule": false
+}
+```
+
+#### Unpublish Story
+
+```http
+POST /api/v1/spaces/{space_id}/stories/{story_id}/unpublish
+```
+
+#### Duplicate Story
+
+```http
+POST /api/v1/spaces/{space_id}/stories/{story_id}/duplicate
+```
+
+**Request Body:**
+
+```json
+{
+  "name": "Copy of Original Story",
+  "slug": "copy-of-original-story",
+  "include_children": false
+}
+```
+
+#### Bulk Operations
+
+##### Bulk Publish Stories
+
+```http
+POST /api/v1/spaces/{space_id}/stories/bulk-publish
+```
+
+**Request Body:**
+
+```json
+{
+  "story_ids": ["story-uuid-1", "story-uuid-2"],
+  "published_at": "2024-01-20T10:00:00Z"
+}
+```
+
+##### Bulk Delete Stories
+
+```http
+DELETE /api/v1/spaces/{space_id}/stories/bulk-delete
+```
+
+**Request Body:**
+
+```json
+{
+  "story_ids": ["story-uuid-1", "story-uuid-2"]
+}
+```
+
+### Story Versions
+
+#### Get Story Versions
+
+```http
+GET /api/v1/spaces/{space_id}/stories/{story_id}/versions
+```
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `per_page` | integer | Items per page (max: 50) |
+
+**Example Response:**
+
+```json
+{
+  "versions": [
+    {
+      "id": "version-uuid",
+      "version_number": 3,
+      "reason": "Updated hero section",
+      "content_snapshot": {...},
+      "created_by": "user-uuid",
+      "created_at": "2024-01-15T14:30:00Z"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "total": 5
+  }
+}
+```
+
+### Content Locking
+
+#### Lock Story for Editing
+
+```http
+POST /api/v1/spaces/{space_id}/stories/{story_id}/lock
+```
+
+**Request Body:**
+
+```json
+{
+  "duration_minutes": 30
+}
+```
+
+**Headers:**
+```
+X-Session-ID: your-session-id
+```
+
+**Example Response:**
+
+```json
+{
+  "lock_info": {
+    "locked_by": "user-uuid",
+    "locked_at": "2024-01-15T10:30:00Z",
+    "lock_expires_at": "2024-01-15T11:00:00Z",
+    "session_id": "session-uuid",
+    "locker": {
+      "id": "user-uuid",
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "time_remaining": 28
+  }
+}
+```
+
+#### Unlock Story
+
+```http
+DELETE /api/v1/spaces/{space_id}/stories/{story_id}/lock
+```
+
+#### Extend Story Lock
+
+```http
+PUT /api/v1/spaces/{space_id}/stories/{story_id}/lock
+```
+
+**Request Body:**
+
+```json
+{
+  "extend_minutes": 30
+}
+```
+
+#### Get Lock Status
+
+```http
+GET /api/v1/spaces/{space_id}/stories/{story_id}/lock
+```
+
+**Example Response:**
+
+```json
+{
+  "is_locked": true,
+  "lock_info": {
+    "locked_by": "user-uuid",
+    "time_remaining": 15,
+    "locker": {
+      "name": "John Doe"
+    }
+  }
+}
+```
+
+### Content Templates
+
+#### Get Available Templates
+
+```http
+GET /api/v1/spaces/{space_id}/stories/templates
+```
+
+**Example Response:**
+
+```json
+{
+  "templates": [
+    {
+      "name": "Blog Post Template",
+      "description": "Standard blog post with hero and content sections",
+      "type": "config",
+      "content": {...}
+    },
+    {
+      "name": "Landing Page",
+      "description": "Marketing landing page template",
+      "type": "custom",
+      "uuid": "template-uuid",
+      "content": {...}
+    }
+  ]
+}
+```
+
+#### Create Template from Story
+
+```http
+POST /api/v1/spaces/{space_id}/stories/{story_id}/create-template
+```
+
+**Request Body:**
+
+```json
+{
+  "name": "My Custom Template",
+  "description": "Template for product pages",
+  "save_to_database": true
+}
+```
+
+#### Create Story from Template
+
+```http
+POST /api/v1/spaces/{space_id}/stories/from-template
+```
+
+**Request Body:**
+
+```json
+{
+  "template_uuid": "template-uuid",
+  "story_name": "New Product Page",
+  "story_slug": "new-product-page",
+  "parent_id": "parent-story-uuid"
+}
+```
+
+### Advanced Search
+
+#### Search Suggestions
+
+```http
+GET /api/v1/spaces/{space_id}/stories/search/suggestions?q=blog&limit=10
+```
+
+**Example Response:**
+
+```json
+{
+  "suggestions": [
+    {
+      "type": "story_name",
+      "value": "Blog Homepage",
+      "uuid": "story-uuid"
+    },
+    {
+      "type": "tag",
+      "value": "blog-post"
+    }
+  ]
+}
+```
+
+#### Search Statistics
+
+```http
+GET /api/v1/spaces/{space_id}/stories/search/stats
+```
+
+**Example Response:**
+
+```json
+{
+  "total_stories": 150,
+  "published_stories": 120,
+  "draft_stories": 25,
+  "languages": ["en", "es", "fr"],
+  "recent_stories": 15,
+  "popular_components": [
+    {
+      "component": "hero",
+      "usage_count": 45
+    },
+    {
+      "component": "text_block",
+      "usage_count": 38
+    }
+  ]
+}
+```
+
+### Translation Management
+
+#### Create Translation
+
+```http
+POST /api/v1/spaces/{space_id}/stories/{story_id}/translations
+```
+
+**Request Body:**
+
+```json
+{
+  "language": "es",
+  "name": "Mi Historia",
+  "slug": "mi-historia",
+  "content": {
+    "body": [
+      {
+        "_uid": "same-as-original",
+        "component": "hero",
+        "title": "Título en Español",
+        "description": "Descripción en español"
+      }
+    ]
+  },
+  "meta_data": {
+    "meta_title": "Título SEO en Español"
+  }
+}
+```
+
+#### Get All Translations
+
+```http
+GET /api/v1/spaces/{space_id}/stories/{story_id}/translations
+```
+
+**Example Response:**
+
+```json
+{
+  "translations": [
+    {
+      "id": "story-uuid-en",
+      "language": "en",
+      "name": "My Story",
+      "status": "published"
+    },
+    {
+      "id": "story-uuid-es", 
+      "language": "es",
+      "name": "Mi Historia",
+      "status": "draft"
+    }
+  ]
+}
+```
+
+#### Get Translation Status
+
+```http
+GET /api/v1/spaces/{space_id}/stories/{story_id}/translation-status
+```
+
+**Example Response:**
+
+```json
+{
+  "en": {
+    "uuid": "story-uuid-en",
+    "status": "published",
+    "last_updated": "2024-01-15T10:30:00Z",
+    "word_count": 450,
+    "completion_percentage": 100,
+    "needs_sync": false
+  },
+  "es": {
+    "uuid": "story-uuid-es",
+    "status": "draft", 
+    "last_updated": "2024-01-10T14:20:00Z",
+    "word_count": 320,
+    "completion_percentage": 75,
+    "needs_sync": true
+  }
+}
+```
+
+#### Sync Translation
+
+```http
+POST /api/v1/spaces/{space_id}/stories/{story_id}/sync-translation
+```
+
+**Request Body:**
+
+```json
+{
+  "source_story_uuid": "original-story-uuid",
+  "fields_to_sync": ["content", "meta_data"]
+}
+```
+
+#### Get Untranslated Fields
+
+```http
+GET /api/v1/spaces/{space_id}/stories/{story_id}/untranslated-fields?source_story_uuid=original-uuid
+```
+
+**Example Response:**
+
+```json
+{
+  "content": {
+    "body": [
+      {
+        "title": "This title needs translation",
+        "description": "This description needs translation"
+      }
+    ]
+  },
+  "meta": {
+    "meta_title": "SEO title needs translation",
+    "meta_description": "SEO description needs translation"
+  }
+}
 ```
 
 ### Components Management
