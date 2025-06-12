@@ -81,12 +81,12 @@ return new class () extends Migration {
         });
 
         // Create GIN indexes for JSONB fields
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_data_gin_idx ON datasource_entries USING GIN (data)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_raw_data_gin_idx ON datasource_entries USING GIN (raw_data)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_computed_fields_gin_idx ON datasource_entries USING GIN (computed_fields)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_dimensions_gin_idx ON datasource_entries USING GIN (dimensions)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_processing_errors_gin_idx ON datasource_entries USING GIN (processing_errors)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_usage_stats_gin_idx ON datasource_entries USING GIN (usage_stats)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_data_gin_idx ON datasource_entries USING GIN (data)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_raw_data_gin_idx ON datasource_entries USING GIN (raw_data)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_computed_fields_gin_idx ON datasource_entries USING GIN (computed_fields)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_dimensions_gin_idx ON datasource_entries USING GIN (dimensions)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_processing_errors_gin_idx ON datasource_entries USING GIN (processing_errors)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasource_entries_usage_stats_gin_idx ON datasource_entries USING GIN (usage_stats)');
     }
 
     /**

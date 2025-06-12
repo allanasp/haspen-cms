@@ -44,7 +44,7 @@ return new class () extends Migration {
         });
 
         // Create GIN index for JSONB permissions
-        // DB::statement('CREATE INDEX IF NOT EXISTS roles_permissions_gin_idx ON roles USING GIN (permissions)');
+        DB::statement('CREATE INDEX IF NOT EXISTS roles_permissions_gin_idx ON roles USING GIN (permissions)');
     }
 
     /**

@@ -49,8 +49,8 @@ return new class () extends Migration {
         });
 
         // Create GIN indexes for JSONB fields
-        // DB::statement('CREATE INDEX IF NOT EXISTS users_preferences_gin_idx ON users USING GIN (preferences)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS users_metadata_gin_idx ON users USING GIN (metadata)');
+        DB::statement('CREATE INDEX IF NOT EXISTS users_preferences_gin_idx ON users USING GIN (preferences)');
+        DB::statement('CREATE INDEX IF NOT EXISTS users_metadata_gin_idx ON users USING GIN (metadata)');
     }
 
     /**

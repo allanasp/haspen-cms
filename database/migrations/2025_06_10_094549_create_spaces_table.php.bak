@@ -52,9 +52,9 @@ return new class () extends Migration {
         });
 
         // Create GIN indexes for JSONB fields (PostgreSQL only)
-        // // DB::statement('CREATE INDEX spaces_settings_gin_idx ON spaces USING GIN (settings)');
-        // // DB::statement('CREATE INDEX spaces_environments_gin_idx ON spaces USING GIN (environments)');
-        // // DB::statement('CREATE INDEX spaces_languages_gin_idx ON spaces USING GIN (languages)');
+        // DB::statement('CREATE INDEX spaces_settings_gin_idx ON spaces USING GIN (settings)');
+        // DB::statement('CREATE INDEX spaces_environments_gin_idx ON spaces USING GIN (environments)');
+        // DB::statement('CREATE INDEX spaces_languages_gin_idx ON spaces USING GIN (languages)');
     }
 
     /**

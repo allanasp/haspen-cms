@@ -77,14 +77,14 @@ return new class () extends Migration {
         });
 
         // Create GIN indexes for JSONB fields
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasources_config_gin_idx ON datasources USING GIN (config)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasources_schema_gin_idx ON datasources USING GIN (schema)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasources_mapping_gin_idx ON datasources USING GIN (mapping)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasources_auth_config_gin_idx ON datasources USING GIN (auth_config)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasources_filters_gin_idx ON datasources USING GIN (filters)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasources_transformations_gin_idx ON datasources USING GIN (transformations)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasources_sync_status_gin_idx ON datasources USING GIN (sync_status)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS datasources_health_check_gin_idx ON datasources USING GIN (health_check)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_config_gin_idx ON datasources USING GIN (config)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_schema_gin_idx ON datasources USING GIN (schema)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_mapping_gin_idx ON datasources USING GIN (mapping)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_auth_config_gin_idx ON datasources USING GIN (auth_config)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_filters_gin_idx ON datasources USING GIN (filters)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_transformations_gin_idx ON datasources USING GIN (transformations)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_sync_status_gin_idx ON datasources USING GIN (sync_status)');
+        DB::statement('CREATE INDEX IF NOT EXISTS datasources_health_check_gin_idx ON datasources USING GIN (health_check)');
     }
 
     /**

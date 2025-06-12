@@ -50,7 +50,7 @@ return new class () extends Migration {
         });
 
         // Create GIN index for custom permissions
-        // DB::statement('CREATE INDEX IF NOT EXISTS space_user_permissions_gin_idx ON space_user USING GIN (custom_permissions)');
+        DB::statement('CREATE INDEX IF NOT EXISTS space_user_permissions_gin_idx ON space_user USING GIN (custom_permissions)');
     }
 
     /**

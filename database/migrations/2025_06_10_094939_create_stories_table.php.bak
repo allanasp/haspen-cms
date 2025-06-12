@@ -96,12 +96,12 @@ return new class () extends Migration {
         });
 
         // Create GIN indexes for JSONB fields (PostgreSQL only)
-        // // DB::statement('CREATE INDEX IF NOT EXISTS stories_content_gin_idx ON stories USING GIN (content)');
-        // // DB::statement('CREATE INDEX IF NOT EXISTS stories_meta_data_gin_idx ON stories USING GIN (meta_data)');
-        // // DB::statement('CREATE INDEX IF NOT EXISTS stories_breadcrumbs_gin_idx ON stories USING GIN (breadcrumbs)');
-        // // DB::statement('CREATE INDEX IF NOT EXISTS stories_translated_languages_gin_idx ON stories USING GIN (translated_languages)');
-        // // DB::statement('CREATE INDEX IF NOT EXISTS stories_allowed_roles_gin_idx ON stories USING GIN (allowed_roles)');
-        // // DB::statement('CREATE INDEX IF NOT EXISTS stories_robots_meta_gin_idx ON stories USING GIN (robots_meta)');
+        // DB::statement('CREATE INDEX IF NOT EXISTS stories_content_gin_idx ON stories USING GIN (content)');
+        // DB::statement('CREATE INDEX IF NOT EXISTS stories_meta_data_gin_idx ON stories USING GIN (meta_data)');
+        // DB::statement('CREATE INDEX IF NOT EXISTS stories_breadcrumbs_gin_idx ON stories USING GIN (breadcrumbs)');
+        // DB::statement('CREATE INDEX IF NOT EXISTS stories_translated_languages_gin_idx ON stories USING GIN (translated_languages)');
+        // DB::statement('CREATE INDEX IF NOT EXISTS stories_allowed_roles_gin_idx ON stories USING GIN (allowed_roles)');
+        // DB::statement('CREATE INDEX IF NOT EXISTS stories_robots_meta_gin_idx ON stories USING GIN (robots_meta)');
     }
 
     /**

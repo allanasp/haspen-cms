@@ -340,6 +340,212 @@ final class Component extends Model
     }
 
     /**
+     * Validate data against component schema.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, string> Validation errors (field_name => error_message)
+     */
+    public function validateData(array $data): array
+    {
+        $errors = [];
+        
+        if (!$this->schema || !is_array($this->schema)) {
+            return $errors;
+        }
+
+        foreach ($this->schema as $fieldName => $fieldConfig) {
+            if (!is_array($fieldConfig)) {
+                continue;
+            }
+
+            $value = $data[$fieldName] ?? null;
+            $fieldType = $fieldConfig['type'] ?? 'text';
+            $isRequired = $fieldConfig['required'] ?? false;
+
+            // Check required fields
+            if ($isRequired && ($value === null || $value === '')) {
+                $errors[$fieldName] = "Field '{$fieldName}' is required";
+                continue;
+            }
+
+            // Skip validation if field is not required and empty
+            if (!$isRequired && ($value === null || $value === '')) {
+                continue;
+            }
+
+            // Validate based on field type
+            $error = $this->validateFieldByType($value, $fieldType, $fieldConfig);
+            if ($error) {
+                $errors[$fieldName] = $error;
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Validate field by its type.
+     *
+     * @param mixed $value
+     * @param string $fieldType
+     * @param array<string, mixed> $fieldConfig
+     */
+    private function validateFieldByType(mixed $value, string $fieldType, array $fieldConfig): ?string
+    {
+        return match ($fieldType) {
+            'text', 'textarea', 'markdown', 'richtext' => $this->validateString($value, $fieldConfig),
+            'number' => $this->validateNumber($value, $fieldConfig),
+            'boolean' => $this->validateBoolean($value),
+            'email' => $this->validateEmail($value),
+            'url' => $this->validateUrl($value),
+            'date', 'datetime' => $this->validateDate($value),
+            'select' => $this->validateSelect($value, $fieldConfig),
+            'multiselect' => $this->validateMultiselect($value, $fieldConfig),
+            'json' => $this->validateJson($value),
+            'blocks' => $this->validateBlocks($value, $fieldConfig),
+            'asset' => $this->validateAsset($value),
+            'story' => $this->validateStory($value),
+            'component' => $this->validateComponent($value),
+            default => null,
+        };
+    }
+
+    /**
+     * Validate blocks field (nested components).
+     *
+     * @param mixed $value
+     * @param array<string, mixed> $fieldConfig
+     */
+    private function validateBlocks(mixed $value, array $fieldConfig): ?string
+    {
+        if (!is_array($value)) {
+            return 'Blocks must be an array';
+        }
+
+        $allowedComponents = $fieldConfig['component_whitelist'] ?? [];
+        
+        foreach ($value as $index => $block) {
+            if (!is_array($block)) {
+                return "Block at index {$index} must be an object";
+            }
+
+            $componentName = $block['component'] ?? null;
+            if (!$componentName) {
+                return "Block at index {$index} must have a component type";
+            }
+
+            // Check if component is allowed
+            if (!empty($allowedComponents) && !in_array($componentName, $allowedComponents)) {
+                return "Component '{$componentName}' is not allowed in this blocks field";
+            }
+
+            // Validate nested component data
+            $component = Component::where('technical_name', $componentName)
+                ->where('space_id', $this->space_id)
+                ->first();
+
+            if (!$component) {
+                return "Component '{$componentName}' not found";
+            }
+
+            $blockData = $block;
+            unset($blockData['component'], $blockData['_uid']);
+            
+            $blockErrors = $component->validateData($blockData);
+            if (!empty($blockErrors)) {
+                $errorMessages = implode(', ', $blockErrors);
+                return "Block at index {$index} has validation errors: {$errorMessages}";
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Validate asset field.
+     *
+     * @param mixed $value
+     */
+    private function validateAsset(mixed $value): ?string
+    {
+        if (!is_array($value) && !is_string($value) && !is_numeric($value)) {
+            return 'Asset must be an ID, UUID, or asset object';
+        }
+
+        // If it's an asset object, validate it has required fields
+        if (is_array($value)) {
+            if (!isset($value['id']) && !isset($value['uuid'])) {
+                return 'Asset object must have id or uuid field';
+            }
+            return null;
+        }
+
+        // For ID/UUID validation, we could check if asset exists but that might be expensive
+        // The StoryService should handle asset existence validation
+        return null;
+    }
+
+    /**
+     * Validate story field.
+     *
+     * @param mixed $value
+     */
+    private function validateStory(mixed $value): ?string
+    {
+        if (!is_array($value) && !is_string($value) && !is_numeric($value)) {
+            return 'Story must be an ID, UUID, or story object';
+        }
+
+        // If it's a story object, validate it has required fields
+        if (is_array($value)) {
+            if (!isset($value['id']) && !isset($value['uuid'])) {
+                return 'Story object must have id or uuid field';
+            }
+            return null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Validate component field.
+     *
+     * @param mixed $value
+     */
+    private function validateComponent(mixed $value): ?string
+    {
+        if (!is_array($value)) {
+            return 'Component must be an object';
+        }
+
+        $componentName = $value['component'] ?? null;
+        if (!$componentName) {
+            return 'Component must have a component type';
+        }
+
+        // Validate the component exists
+        $component = Component::where('technical_name', $componentName)
+            ->where('space_id', $this->space_id)
+            ->first();
+
+        if (!$component) {
+            return "Component '{$componentName}' not found";
+        }
+
+        // Validate component data
+        $componentData = $value;
+        unset($componentData['component'], $componentData['_uid']);
+        
+        $errors = $component->validateData($componentData);
+        if (!empty($errors)) {
+            $errorMessages = implode(', ', $errors);
+            return "Component validation errors: {$errorMessages}";
+        }
+
+        return null;
+    }
+
+    /**
      * Clear model-specific cache.
      */
     protected function clearModelSpecificCache(): void

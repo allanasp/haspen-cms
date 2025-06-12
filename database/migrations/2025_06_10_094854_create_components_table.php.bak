@@ -68,10 +68,10 @@ return new class () extends Migration {
         });
 
         // Create GIN indexes for JSONB fields
-        // DB::statement('CREATE INDEX IF NOT EXISTS components_schema_gin_idx ON components USING GIN (schema)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS components_preview_field_gin_idx ON components USING GIN (preview_field)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS components_tabs_gin_idx ON components USING GIN (tabs)');
-        // DB::statement('CREATE INDEX IF NOT EXISTS components_allowed_roles_gin_idx ON components USING GIN (allowed_roles)');
+        DB::statement('CREATE INDEX IF NOT EXISTS components_schema_gin_idx ON components USING GIN (schema)');
+        DB::statement('CREATE INDEX IF NOT EXISTS components_preview_field_gin_idx ON components USING GIN (preview_field)');
+        DB::statement('CREATE INDEX IF NOT EXISTS components_tabs_gin_idx ON components USING GIN (tabs)');
+        DB::statement('CREATE INDEX IF NOT EXISTS components_allowed_roles_gin_idx ON components USING GIN (allowed_roles)');
     }
 
     /**

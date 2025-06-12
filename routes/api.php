@@ -96,6 +96,36 @@ Route::prefix('v1')->group(function () {
             'destroy' => 'management.stories.destroy'
         ]);
         
+        // Additional Story routes
+        Route::prefix('stories')->name('management.stories.')->group(function () {
+            Route::get('templates', [StoryController::class, 'getTemplates'])->name('templates');
+            Route::post('from-template', [StoryController::class, 'createFromTemplate'])->name('create-from-template');
+            Route::post('{storyId}/create-template', [StoryController::class, 'createTemplate'])->name('create-template');
+            Route::post('{storyId}/publish', [StoryController::class, 'publish'])->name('publish');
+            Route::post('{storyId}/unpublish', [StoryController::class, 'unpublish'])->name('unpublish');
+            Route::post('{storyId}/duplicate', [StoryController::class, 'duplicate'])->name('duplicate');
+            Route::post('bulk-publish', [StoryController::class, 'bulkPublish'])->name('bulk-publish');
+            Route::delete('bulk-delete', [StoryController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::get('{storyId}/versions', [StoryController::class, 'versions'])->name('versions');
+            
+            // Content locking routes
+            Route::post('{storyId}/lock', [StoryController::class, 'lock'])->name('lock');
+            Route::delete('{storyId}/lock', [StoryController::class, 'unlock'])->name('unlock');
+            Route::put('{storyId}/lock', [StoryController::class, 'extendLock'])->name('extend-lock');
+            Route::get('{storyId}/lock', [StoryController::class, 'getLockStatus'])->name('lock-status');
+            
+            // Search routes
+            Route::get('search/suggestions', [StoryController::class, 'getSearchSuggestions'])->name('search-suggestions');
+            Route::get('search/stats', [StoryController::class, 'getSearchStats'])->name('search-stats');
+            
+            // Translation routes
+            Route::post('{storyId}/translations', [StoryController::class, 'createTranslation'])->name('create-translation');
+            Route::get('{storyId}/translations', [StoryController::class, 'getTranslations'])->name('translations');
+            Route::get('{storyId}/translation-status', [StoryController::class, 'getTranslationStatus'])->name('translation-status');
+            Route::post('{storyId}/sync-translation', [StoryController::class, 'syncTranslation'])->name('sync-translation');
+            Route::get('{storyId}/untranslated-fields', [StoryController::class, 'getUntranslatedFields'])->name('untranslated-fields');
+        });
+        
         // Components Management
         Route::apiResource('components', ComponentController::class, [
             'parameters' => ['components' => 'componentId']
