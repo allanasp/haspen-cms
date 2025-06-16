@@ -67,6 +67,9 @@ final class Component extends Model
         'name',
         'technical_name',
         'slug',
+        'parent_component_id',
+        'variant_group',
+        'variant_name',
         'description',
         'display_name',
         'schema',
@@ -94,7 +97,11 @@ final class Component extends Model
         'tabs' => Json::class,
         'is_nestable' => 'boolean',
         'is_root' => 'boolean',
+        'allow_inheritance' => 'boolean',
         'allowed_roles' => Json::class,
+        'inherited_fields' => Json::class,
+        'override_fields' => Json::class,
+        'variant_config' => Json::class,
     ];
 
     /**
@@ -358,6 +365,11 @@ final class Component extends Model
                 continue;
             }
 
+            // Check conditional field display
+            if (!$this->shouldDisplayField($fieldName, $fieldConfig, $data)) {
+                continue;
+            }
+
             $value = $data[$fieldName] ?? null;
             $fieldType = $fieldConfig['type'] ?? 'text';
             $isRequired = $fieldConfig['required'] ?? false;
@@ -546,6 +558,502 @@ final class Component extends Model
     }
 
     /**
+     * Check if a field should be displayed based on conditional rules.
+     */
+    protected function shouldDisplayField(string $fieldName, array $fieldConfig, array $data): bool
+    {
+        // If no conditions are defined, always display the field
+        if (!isset($fieldConfig['conditions']) || !is_array($fieldConfig['conditions'])) {
+            return true;
+        }
+
+        foreach ($fieldConfig['conditions'] as $condition) {
+            if (!$this->evaluateCondition($condition, $data)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Evaluate a single condition.
+     */
+    protected function evaluateCondition(array $condition, array $data): bool
+    {
+        $field = $condition['field'] ?? null;
+        $operator = $condition['operator'] ?? 'equals';
+        $value = $condition['value'] ?? null;
+
+        if (!$field) {
+            return true;
+        }
+
+        $fieldValue = $data[$field] ?? null;
+
+        return match($operator) {
+            'equals', '==' => $fieldValue == $value,
+            'not_equals', '!=' => $fieldValue != $value,
+            'contains' => is_string($fieldValue) && str_contains($fieldValue, $value),
+            'not_contains' => is_string($fieldValue) && !str_contains($fieldValue, $value),
+            'in' => is_array($value) && in_array($fieldValue, $value),
+            'not_in' => is_array($value) && !in_array($fieldValue, $value),
+            'greater_than', '>' => is_numeric($fieldValue) && is_numeric($value) && $fieldValue > $value,
+            'less_than', '<' => is_numeric($fieldValue) && is_numeric($value) && $fieldValue < $value,
+            'greater_equal', '>=' => is_numeric($fieldValue) && is_numeric($value) && $fieldValue >= $value,
+            'less_equal', '<=' => is_numeric($fieldValue) && is_numeric($value) && $fieldValue <= $value,
+            'empty' => empty($fieldValue),
+            'not_empty' => !empty($fieldValue),
+            'is_true' => $fieldValue === true || $fieldValue === 'true' || $fieldValue === 1 || $fieldValue === '1',
+            'is_false' => $fieldValue === false || $fieldValue === 'false' || $fieldValue === 0 || $fieldValue === '0',
+            default => true
+        };
+    }
+
+    /**
+     * Get visible fields based on current data and conditions.
+     */
+    public function getVisibleFields(array $data = []): array
+    {
+        if (!$this->schema || !is_array($this->schema)) {
+            return [];
+        }
+
+        $visibleFields = [];
+
+        foreach ($this->schema as $fieldName => $fieldConfig) {
+            if (!is_array($fieldConfig)) {
+                continue;
+            }
+
+            if ($this->shouldDisplayField($fieldName, $fieldConfig, $data)) {
+                $visibleFields[$fieldName] = $fieldConfig;
+            }
+        }
+
+        return $visibleFields;
+    }
+
+    /**
+     * Get component usage count across all stories in the same space.
+     */
+    public function getUsageCount(): int
+    {
+        return $this->cache('usage_count', function () {
+            return Story::where('space_id', $this->space_id)
+                ->whereJsonContains('content->body', ['component' => $this->technical_name])
+                ->count();
+        }, 300); // Cache for 5 minutes
+    }
+
+    /**
+     * Get stories that use this component.
+     */
+    public function getUsedInStories()
+    {
+        return Story::where('space_id', $this->space_id)
+            ->whereJsonContains('content->body', ['component' => $this->technical_name])
+            ->select('uuid', 'name', 'slug', 'status', 'updated_at')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+    }
+
+    /**
+     * Check if component is being used in any stories.
+     */
+    public function isInUse(): bool
+    {
+        return $this->getUsageCount() > 0;
+    }
+
+    /**
+     * Get detailed usage statistics for this component.
+     */
+    public function getUsageStatistics(): array
+    {
+        $stories = Story::where('space_id', $this->space_id)
+            ->whereJsonContains('content->body', ['component' => $this->technical_name])
+            ->get(['status', 'content']);
+
+        $stats = [
+            'total_usage' => 0,
+            'by_status' => [
+                'draft' => 0,
+                'in_review' => 0,
+                'published' => 0,
+                'scheduled' => 0,
+                'archived' => 0,
+            ],
+            'usage_depth' => [], // Track how deep the component is nested
+        ];
+
+        foreach ($stories as $story) {
+            $usageCount = $this->countComponentUsageInContent($story->content, $this->technical_name);
+            $stats['total_usage'] += $usageCount;
+            $stats['by_status'][$story->status] += $usageCount;
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Count how many times a component is used in content (including nested).
+     */
+    private function countComponentUsageInContent(array $content, string $componentName, int $depth = 0): int
+    {
+        $count = 0;
+        
+        if (!isset($content['body']) || !is_array($content['body'])) {
+            return $count;
+        }
+
+        foreach ($content['body'] as $block) {
+            if (isset($block['component']) && $block['component'] === $componentName) {
+                $count++;
+            }
+
+            // Check nested content
+            foreach ($block as $key => $value) {
+                if (is_array($value) && isset($value['body']) && is_array($value['body'])) {
+                    $count += $this->countComponentUsageInContent($value, $componentName, $depth + 1);
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Get components that are frequently used together with this component.
+     */
+    public function getRelatedComponents(int $limit = 5): array
+    {
+        $stories = Story::where('space_id', $this->space_id)
+            ->whereJsonContains('content->body', ['component' => $this->technical_name])
+            ->get(['content']);
+
+        $componentCounts = [];
+
+        foreach ($stories as $story) {
+            $usedComponents = $this->extractComponentsFromContent($story->content);
+            foreach ($usedComponents as $componentName) {
+                if ($componentName !== $this->technical_name) {
+                    $componentCounts[$componentName] = ($componentCounts[$componentName] ?? 0) + 1;
+                }
+            }
+        }
+
+        arsort($componentCounts);
+        return array_slice($componentCounts, 0, $limit, true);
+    }
+
+    /**
+     * Extract all component names from content structure.
+     */
+    private function extractComponentsFromContent(array $content): array
+    {
+        $components = [];
+        
+        if (!isset($content['body']) || !is_array($content['body'])) {
+            return $components;
+        }
+
+        foreach ($content['body'] as $block) {
+            if (isset($block['component'])) {
+                $components[] = $block['component'];
+            }
+
+            // Check nested content
+            foreach ($block as $value) {
+                if (is_array($value) && isset($value['body'])) {
+                    $components = array_merge($components, $this->extractComponentsFromContent($value));
+                }
+            }
+        }
+
+        return array_unique($components);
+    }
+
+    /**
+     * Parent component relationship (for inheritance).
+     */
+    public function parentComponent()
+    {
+        return $this->belongsTo(Component::class, 'parent_component_id');
+    }
+
+    /**
+     * Child components relationship (inheritance children).
+     */
+    public function childComponents()
+    {
+        return $this->hasMany(Component::class, 'parent_component_id');
+    }
+
+    /**
+     * Variant siblings (components in the same variant group).
+     */
+    public function variantSiblings()
+    {
+        return $this->where('variant_group', $this->variant_group)
+                   ->where('space_id', $this->space_id)
+                   ->where('id', '!=', $this->id);
+    }
+
+    /**
+     * Get the complete schema including inherited fields.
+     */
+    public function getCompleteSchema(): array
+    {
+        return $this->cache('complete_schema', function () {
+            $schema = $this->schema ?? [];
+            
+            if ($this->parent_component_id && $this->parentComponent) {
+                $parentSchema = $this->parentComponent->getCompleteSchema();
+                $overrides = $this->override_fields ?? [];
+                
+                // Merge parent schema with overrides
+                foreach ($parentSchema as $fieldName => $fieldConfig) {
+                    if (!isset($schema[$fieldName])) {
+                        $schema[$fieldName] = $fieldConfig;
+                    }
+                }
+                
+                // Apply overrides
+                foreach ($overrides as $fieldName => $override) {
+                    if (isset($schema[$fieldName])) {
+                        $schema[$fieldName] = array_merge($schema[$fieldName], $override);
+                    }
+                }
+            }
+            
+            return $schema;
+        }, 600); // Cache for 10 minutes
+    }
+
+    /**
+     * Create a child component that inherits from this component.
+     */
+    public function createChild(array $childData): Component
+    {
+        if (!$this->allow_inheritance) {
+            throw new \InvalidArgumentException('This component does not allow inheritance');
+        }
+
+        $child = new Component();
+        $child->space_id = $this->space_id;
+        $child->parent_component_id = $this->id;
+        $child->name = $childData['name'];
+        $child->technical_name = $childData['technical_name'];
+        $child->description = $childData['description'] ?? "Extends {$this->name}";
+        $child->type = $this->type;
+        $child->is_nestable = $this->is_nestable;
+        $child->is_root = $this->is_root;
+        $child->allow_inheritance = $childData['allow_inheritance'] ?? true;
+        
+        // Set inherited fields
+        $child->inherited_fields = $this->getCompleteSchema();
+        
+        // Apply child-specific schema and overrides
+        $child->schema = $childData['schema'] ?? [];
+        $child->override_fields = $childData['override_fields'] ?? [];
+        
+        // Copy visual properties unless overridden
+        $child->icon = $childData['icon'] ?? $this->icon;
+        $child->color = $childData['color'] ?? $this->color;
+        $child->tabs = $childData['tabs'] ?? $this->tabs;
+        
+        $child->created_by = auth()->id();
+        $child->save();
+
+        return $child;
+    }
+
+    /**
+     * Create a variant of this component.
+     */
+    public function createVariant(array $variantData): Component
+    {
+        $variant = new Component();
+        $variant->space_id = $this->space_id;
+        $variant->variant_group = $this->variant_group ?: $this->technical_name;
+        $variant->variant_name = $variantData['variant_name'];
+        $variant->name = $variantData['name'] ?? "{$this->name} ({$variantData['variant_name']})";
+        $variant->technical_name = $variantData['technical_name'] ?? "{$this->technical_name}_{$variantData['variant_name']}";
+        $variant->description = $variantData['description'] ?? "Variant of {$this->name}";
+        
+        // Copy base properties
+        $variant->type = $this->type;
+        $variant->schema = $this->schema;
+        $variant->is_nestable = $this->is_nestable;
+        $variant->is_root = $this->is_root;
+        $variant->allow_inheritance = $this->allow_inheritance;
+        $variant->icon = $this->icon;
+        $variant->color = $this->color;
+        $variant->tabs = $this->tabs;
+        
+        // Apply variant configuration
+        $variant->variant_config = $variantData['variant_config'] ?? [];
+        
+        // Apply schema overrides
+        if (isset($variantData['schema_overrides'])) {
+            $schema = $variant->schema;
+            foreach ($variantData['schema_overrides'] as $fieldName => $override) {
+                if (isset($schema[$fieldName])) {
+                    $schema[$fieldName] = array_merge($schema[$fieldName], $override);
+                } else {
+                    $schema[$fieldName] = $override;
+                }
+            }
+            $variant->schema = $schema;
+        }
+        
+        $variant->created_by = auth()->id();
+        $variant->save();
+
+        // Update original component's variant group if not set
+        if (!$this->variant_group) {
+            $this->variant_group = $this->technical_name;
+            $this->variant_name = 'default';
+            $this->save();
+        }
+
+        return $variant;
+    }
+
+    /**
+     * Check if this component inherits from another.
+     */
+    public function inheritsFrom(Component $component): bool
+    {
+        if ($this->parent_component_id === $component->id) {
+            return true;
+        }
+        
+        if ($this->parentComponent) {
+            return $this->parentComponent->inheritsFrom($component);
+        }
+        
+        return false;
+    }
+
+    /**
+     * Get all ancestor components.
+     */
+    public function getAncestors(): Collection
+    {
+        $ancestors = collect();
+        $current = $this->parentComponent;
+        
+        while ($current) {
+            $ancestors->push($current);
+            $current = $current->parentComponent;
+        }
+        
+        return $ancestors;
+    }
+
+    /**
+     * Get all descendant components.
+     */
+    public function getDescendants(): Collection
+    {
+        $descendants = collect();
+        
+        foreach ($this->childComponents as $child) {
+            $descendants->push($child);
+            $descendants = $descendants->merge($child->getDescendants());
+        }
+        
+        return $descendants;
+    }
+
+    /**
+     * Check if this component is a variant.
+     */
+    public function isVariant(): bool
+    {
+        return !empty($this->variant_group) && !empty($this->variant_name);
+    }
+
+    /**
+     * Get the base component for this variant group.
+     */
+    public function getBaseVariant(): ?Component
+    {
+        if (!$this->variant_group) {
+            return null;
+        }
+        
+        return Component::where('space_id', $this->space_id)
+            ->where('variant_group', $this->variant_group)
+            ->where('variant_name', 'default')
+            ->first();
+    }
+
+    /**
+     * Get all variants in the same group.
+     */
+    public function getAllVariants()
+    {
+        if (!$this->variant_group) {
+            return collect([$this]);
+        }
+        
+        return Component::where('space_id', $this->space_id)
+            ->where('variant_group', $this->variant_group)
+            ->orderBy('variant_name')
+            ->get();
+    }
+
+    /**
+     * Override validateData to use complete schema.
+     */
+    public function validateData(array $data): array
+    {
+        $errors = [];
+        $schema = $this->getCompleteSchema();
+        
+        if (!$schema || !is_array($schema)) {
+            return $errors;
+        }
+
+        foreach ($schema as $fieldName => $fieldConfig) {
+            if (!is_array($fieldConfig)) {
+                continue;
+            }
+
+            // Check conditional field display
+            if (!$this->shouldDisplayField($fieldName, $fieldConfig, $data)) {
+                continue;
+            }
+
+            $value = $data[$fieldName] ?? null;
+            $fieldType = $fieldConfig['type'] ?? 'text';
+            $isRequired = $fieldConfig['required'] ?? false;
+
+            // Check required fields
+            if ($isRequired && ($value === null || $value === '')) {
+                $errors[$fieldName] = "Field '{$fieldName}' is required";
+                continue;
+            }
+
+            // Skip validation if field is not required and empty
+            if (!$isRequired && ($value === null || $value === '')) {
+                continue;
+            }
+
+            // Validate based on field type
+            $error = $this->validateFieldByType($value, $fieldType, $fieldConfig);
+            if ($error) {
+                $errors[$fieldName] = $error;
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
      * Clear model-specific cache.
      */
     protected function clearModelSpecificCache(): void
@@ -553,5 +1061,7 @@ final class Component extends Model
         $this->forgetCache('schema');
         $this->forgetCache('fields');
         $this->forgetCache('validation_rules');
+        $this->forgetCache('usage_count');
+        $this->forgetCache('complete_schema');
     }
 }

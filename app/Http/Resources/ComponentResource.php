@@ -39,6 +39,14 @@ class ComponentResource extends JsonResource
                 $request->query('include_usage'),
                 fn() => $this->getUsageCount()
             ),
+            'usage_statistics' => $this->when(
+                $request->query('include_usage_stats'),
+                fn() => $this->getUsageStatistics()
+            ),
+            'related_components' => $this->when(
+                $request->query('include_related'),
+                fn() => $this->getRelatedComponents()
+            ),
             'created_at' => $this->created_at->toISOString(),
             'updated_at' => $this->updated_at->toISOString(),
             'created_by' => $this->when(
@@ -51,13 +59,4 @@ class ComponentResource extends JsonResource
         ];
     }
 
-    /**
-     * Get usage count for the component.
-     */
-    private function getUsageCount(): int
-    {
-        // This would count stories using this component
-        // Implementation depends on how you track component usage
-        return 0;
-    }
 }

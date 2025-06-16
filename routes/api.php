@@ -136,6 +136,20 @@ Route::prefix('v1')->group(function () {
             'update' => 'management.components.update',
             'destroy' => 'management.components.destroy'
         ]);
+
+        // Component inheritance and variants
+        Route::prefix('components')->name('management.components.')->group(function () {
+            Route::post('{componentId}/inherit', [ComponentController::class, 'createChild'])->name('inherit');
+            Route::post('{componentId}/variant', [ComponentController::class, 'createVariant'])->name('variant');
+            Route::get('{componentId}/children', [ComponentController::class, 'getChildren'])->name('children');
+            Route::get('{componentId}/variants', [ComponentController::class, 'getVariants'])->name('variants');
+            Route::get('{componentId}/ancestors', [ComponentController::class, 'getAncestors'])->name('ancestors');
+            Route::get('{componentId}/usage', [ComponentController::class, 'getUsage'])->name('usage');
+            Route::post('import', [ComponentController::class, 'import'])->name('import');
+            Route::post('export', [ComponentController::class, 'export'])->name('export');
+            Route::get('templates', [ComponentController::class, 'getTemplates'])->name('templates');
+            Route::post('from-template', [ComponentController::class, 'createFromTemplate'])->name('from-template');
+        });
         
         // Assets Management
         Route::apiResource('assets', AssetController::class, [
