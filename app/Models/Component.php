@@ -63,7 +63,7 @@ final class Component extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = [
+    protected array $fillable = [
         'name',
         'technical_name',
         'slug',
@@ -88,7 +88,7 @@ final class Component extends Model
      *
      * @var array<array-key, mixed>
      */
-    protected $casts = [
+    protected array $casts = [
         'schema' => ComponentSchema::class,
         'preview_field' => Json::class,
         'tabs' => Json::class,
@@ -113,7 +113,7 @@ final class Component extends Model
      *
      * @var array<array-key, string>
      */
-    protected $hidden = [
+    protected array $hidden = [
         'id',
         'space_id',
     ];

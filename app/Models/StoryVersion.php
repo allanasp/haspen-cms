@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Casts\Json;
 use App\Traits\HasUuid;
+use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -41,8 +42,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class StoryVersion extends Model
 {
     use HasUuid;
+    use MultiTenant;
 
-    protected $fillable = [
+    protected array $fillable = [
         'story_id',
         'version_number', 
         'name',
@@ -63,14 +65,14 @@ class StoryVersion extends Model
         'created_by',
     ];
 
-    protected $casts = [
+    protected array $casts = [
         'content' => Json::class,
         'published_at' => 'datetime',
         'scheduled_at' => 'datetime',
         'position' => 'integer',
     ];
 
-    protected $attributes = [
+    protected array $attributes = [
         'content' => '[]',
         'status' => 'draft',
         'language' => 'en',

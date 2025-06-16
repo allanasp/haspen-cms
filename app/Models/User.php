@@ -60,7 +60,7 @@ final class User extends Authenticatable
      *
      * @var array<int, string>
      */
-    protected $fillable = [
+    protected array $fillable = [
         'name',
         'email',
         'password',
@@ -77,7 +77,7 @@ final class User extends Authenticatable
      *
      * @var array<array-key, string>
      */
-    protected $hidden = [
+    protected array $hidden = [
         'id',
         'password',
         'remember_token',
@@ -88,7 +88,7 @@ final class User extends Authenticatable
      *
      * @var array<array-key, mixed>
      */
-    protected $casts = [
+    protected array $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_admin' => 'boolean',
@@ -390,6 +390,99 @@ final class User extends Authenticatable
         $hash = md5(strtolower(trim($this->email)));
 
         return "https://www.gravatar.com/avatar/{$hash}?d=identicon&s=200";
+    }
+
+    /**
+     * Get validation rules for user creation/update.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'avatar_url' => ['nullable', 'string', 'url', 'max:500'],
+            'bio' => ['nullable', 'string', 'max:1000'],
+            'timezone' => ['required', 'string', 'max:100'],
+            'language' => ['required', 'string', 'max:10'],
+            'status' => ['required', 'string', 'in:' . self::STATUS_ACTIVE . ',' . self::STATUS_INACTIVE . ',' . self::STATUS_SUSPENDED],
+            'is_admin' => ['boolean'],
+            'preferences' => ['nullable', 'array'],
+            'metadata' => ['nullable', 'array'],
+        ];
+    }
+
+    /**
+     * Get validation rules for user creation.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function createRules(): array
+    {
+        return array_merge(self::rules(), [
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+    }
+
+    /**
+     * Get validation rules for user update.
+     *
+     * @param int|null $userId
+     * @return array<string, array<int, string>|string>
+     */
+    public static function updateRules(?int $userId = null): array
+    {
+        $rules = self::rules();
+        
+        // Make password optional for updates
+        $rules['password'] = ['nullable', 'string', 'min:8', 'confirmed'];
+        
+        // Update email unique rule to exclude current user
+        if ($userId) {
+            $rules['email'] = ['required', 'string', 'email', 'max:255', "unique:users,email,{$userId}"];
+        } else {
+            $rules['email'] = ['required', 'string', 'email', 'max:255', 'unique:users,email'];
+        }
+        
+        return $rules;
+    }
+
+    /**
+     * Get validation rules for profile update (limited fields).
+     *
+     * @param int|null $userId
+     * @return array<string, array<int, string>|string>
+     */
+    public static function profileUpdateRules(?int $userId = null): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => $userId 
+                ? ['required', 'string', 'email', 'max:255', "unique:users,email,{$userId}"]
+                : ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'avatar_url' => ['nullable', 'string', 'url', 'max:500'],
+            'bio' => ['nullable', 'string', 'max:1000'],
+            'timezone' => ['required', 'string', 'max:100'],
+            'language' => ['required', 'string', 'max:10'],
+            'preferences' => ['nullable', 'array'],
+        ];
+    }
+
+    /**
+     * Get validation rules for password change.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function passwordChangeRules(): array
+    {
+        return [
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password_confirmation' => ['required', 'string'],
+        ];
     }
 
     /**

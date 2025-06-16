@@ -47,7 +47,7 @@ final class Role extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = [
+    protected array $fillable = [
         'name',
         'slug',
         'description',
@@ -62,7 +62,7 @@ final class Role extends Model
      *
      * @var array<array-key, mixed>
      */
-    protected $casts = [
+    protected array $casts = [
         'permissions' => Json::class,
         'is_system_role' => 'boolean',
         'is_default' => 'boolean',
@@ -73,7 +73,7 @@ final class Role extends Model
      *
      * @var array<array-key, string>
      */
-    protected $hidden = [
+    protected array $hidden = [
         'id',
     ];
 
@@ -147,6 +147,104 @@ final class Role extends Model
     public function hasPermission(string $permission): bool
     {
         return \in_array($permission, $this->permissions);
+    }
+
+    /**
+     * Get validation rules for role creation/update.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9-]+$/'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'permissions' => ['required', 'array'],
+            'permissions.*' => ['string', 'in:' . implode(',', self::PERMISSIONS)],
+            'is_system_role' => ['boolean'],
+            'is_default' => ['boolean'],
+            'priority' => ['integer', 'min:0', 'max:1000'],
+        ];
+    }
+
+    /**
+     * Get validation rules for role creation.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function createRules(): array
+    {
+        return array_merge(self::rules(), [
+            'name' => ['required', 'string', 'max:255', 'unique:roles,name'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:roles,slug', 'regex:/^[a-z0-9-]+$/'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', 'in:' . implode(',', self::PERMISSIONS)],
+        ]);
+    }
+
+    /**
+     * Get validation rules for role update.
+     *
+     * @param int|null $roleId
+     * @return array<string, array<int, string>|string>
+     */
+    public static function updateRules(?int $roleId = null): array
+    {
+        $rules = self::rules();
+        
+        // Update unique rules to exclude current role
+        if ($roleId) {
+            $rules['name'] = ['required', 'string', 'max:255', "unique:roles,name,{$roleId}"];
+            $rules['slug'] = ['nullable', 'string', 'max:255', "unique:roles,slug,{$roleId}", 'regex:/^[a-z0-9-]+$/'];
+        } else {
+            $rules['name'] = ['required', 'string', 'max:255', 'unique:roles,name'];
+            $rules['slug'] = ['nullable', 'string', 'max:255', 'unique:roles,slug', 'regex:/^[a-z0-9-]+$/'];
+        }
+        
+        return $rules;
+    }
+
+    /**
+     * Get validation rules for permission assignment.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function permissionRules(): array
+    {
+        return [
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', 'in:' . implode(',', self::PERMISSIONS)],
+        ];
+    }
+
+    /**
+     * Get validation rules for system role operations.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function systemRoleRules(): array
+    {
+        return [
+            'is_system_role' => ['boolean'],
+            'is_default' => ['boolean'],
+            'priority' => ['integer', 'min:0', 'max:1000'],
+        ];
+    }
+
+    /**
+     * Get validation rules for role assignment to users.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function assignmentRules(): array
+    {
+        return [
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'space_id' => ['required', 'integer', 'exists:spaces,id'],
+            'custom_permissions' => ['nullable', 'array'],
+            'custom_permissions.*' => ['string', 'in:' . implode(',', self::PERMISSIONS)],
+        ];
     }
 
     /**

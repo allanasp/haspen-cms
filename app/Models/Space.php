@@ -58,7 +58,7 @@ final class Space extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = [
+    protected array $fillable = [
         'name',
         'slug',
         'domain',
@@ -81,7 +81,7 @@ final class Space extends Model
      *
      * @var array<array-key, mixed>
      */
-    protected $casts = [
+    protected array $casts = [
         'settings' => Json::class,
         'environments' => Json::class,
         'languages' => Json::class,
@@ -94,7 +94,7 @@ final class Space extends Model
      *
      * @var array<array-key, string>
      */
-    protected $hidden = [
+    protected array $hidden = [
         'id',
     ];
 
@@ -151,6 +151,105 @@ final class Space extends Model
         /** @var mixed $config */
         $config = $environments[$environment] ?? [];
         return is_array($config) ? $config : [];
+    }
+
+    /**
+     * Get validation rules for space creation/update.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9-]+$/'],
+            'domain' => ['nullable', 'string', 'max:255', 'regex:/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'settings' => ['nullable', 'array'],
+            'environments' => ['required', 'array'],
+            'default_language' => ['required', 'string', 'max:10'],
+            'languages' => ['required', 'array', 'min:1'],
+            'languages.*' => ['required', 'string', 'max:10'],
+            'plan' => ['required', 'string', 'in:' . self::PLAN_FREE . ',' . self::PLAN_PRO . ',' . self::PLAN_ENTERPRISE],
+            'story_limit' => ['nullable', 'integer', 'min:0'],
+            'asset_limit' => ['nullable', 'integer', 'min:0'],
+            'api_limit' => ['nullable', 'integer', 'min:0'],
+            'status' => ['required', 'string', 'in:' . self::STATUS_ACTIVE . ',' . self::STATUS_SUSPENDED . ',' . self::STATUS_DELETED],
+            'trial_ends_at' => ['nullable', 'date', 'after:now'],
+            'suspended_at' => ['nullable', 'date'],
+        ];
+    }
+
+    /**
+     * Get validation rules for space creation.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function createRules(): array
+    {
+        return array_merge(self::rules(), [
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'unique:spaces,slug', 'regex:/^[a-z0-9-]+$/'],
+            'domain' => ['nullable', 'string', 'max:255', 'unique:spaces,domain', 'regex:/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'],
+            'default_language' => ['required', 'string', 'max:10'],
+            'languages' => ['required', 'array', 'min:1'],
+            'plan' => ['required', 'string', 'in:' . self::PLAN_FREE . ',' . self::PLAN_PRO . ',' . self::PLAN_ENTERPRISE],
+            'environments' => ['required', 'array'],
+        ]);
+    }
+
+    /**
+     * Get validation rules for space update.
+     *
+     * @param int|null $spaceId
+     * @return array<string, array<int, string>|string>
+     */
+    public static function updateRules(?int $spaceId = null): array
+    {
+        $rules = self::rules();
+        
+        // Update unique rules to exclude current space
+        if ($spaceId) {
+            $rules['slug'] = ['nullable', 'string', 'max:255', "unique:spaces,slug,{$spaceId}", 'regex:/^[a-z0-9-]+$/'];
+            $rules['domain'] = ['nullable', 'string', 'max:255', "unique:spaces,domain,{$spaceId}", 'regex:/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'];
+        } else {
+            $rules['slug'] = ['nullable', 'string', 'max:255', 'unique:spaces,slug', 'regex:/^[a-z0-9-]+$/'];
+            $rules['domain'] = ['nullable', 'string', 'max:255', 'unique:spaces,domain', 'regex:/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'];
+        }
+        
+        return $rules;
+    }
+
+    /**
+     * Get validation rules for space settings update.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function settingsUpdateRules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'settings' => ['nullable', 'array'],
+            'default_language' => ['required', 'string', 'max:10'],
+            'languages' => ['required', 'array', 'min:1'],
+            'languages.*' => ['required', 'string', 'max:10'],
+        ];
+    }
+
+    /**
+     * Get validation rules for plan change.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function planChangeRules(): array
+    {
+        return [
+            'plan' => ['required', 'string', 'in:' . self::PLAN_FREE . ',' . self::PLAN_PRO . ',' . self::PLAN_ENTERPRISE],
+            'story_limit' => ['nullable', 'integer', 'min:0'],
+            'asset_limit' => ['nullable', 'integer', 'min:0'],
+            'api_limit' => ['nullable', 'integer', 'min:0'],
+        ];
     }
 
     /**

@@ -72,7 +72,7 @@ final class Story extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = [
+    protected array $fillable = [
         'parent_id',
         'name',
         'slug',
@@ -109,7 +109,7 @@ final class Story extends Model
      *
      * @var array<array-key, mixed>
      */
-    protected $casts = [
+    protected array $casts = [
         'content' => Json::class,
         'translated_languages' => Json::class,
         'is_folder' => 'boolean',
@@ -130,7 +130,7 @@ final class Story extends Model
      *
      * @var array<array-key, string>
      */
-    protected $hidden = [
+    protected array $hidden = [
         'id',
         'space_id',
     ];
@@ -1019,6 +1019,150 @@ final class Story extends Model
     {
         $text = $this->extractTextFromContent(['body' => $content]);
         return str_word_count(strip_tags($text));
+    }
+
+    /**
+     * Get validation rules for story creation/update.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function rules(): array
+    {
+        return [
+            'space_id' => ['required', 'integer', 'exists:spaces,id'],
+            'parent_id' => ['nullable', 'integer', 'exists:stories,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9-]+$/'],
+            'full_slug' => ['nullable', 'string', 'max:500'],
+            'content' => ['required', 'array'],
+            'language' => ['required', 'string', 'max:10'],
+            'translated_story_id' => ['nullable', 'integer', 'exists:stories,id'],
+            'translated_languages' => ['nullable', 'array'],
+            'translated_languages.*' => ['string', 'max:10'],
+            'status' => ['required', 'string', 'in:' . self::STATUS_DRAFT . ',' . self::STATUS_REVIEW . ',' . self::STATUS_PUBLISHED . ',' . self::STATUS_SCHEDULED . ',' . self::STATUS_ARCHIVED],
+            'is_folder' => ['boolean'],
+            'is_startpage' => ['boolean'],
+            'sort_order' => ['integer', 'min:0'],
+            'path' => ['nullable', 'string', 'max:500'],
+            'breadcrumbs' => ['nullable', 'array'],
+            'meta_data' => ['nullable', 'array'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:500'],
+            'robots_meta' => ['nullable', 'array'],
+            'allowed_roles' => ['nullable', 'array'],
+            'allowed_roles.*' => ['string', 'max:100'],
+            'published_at' => ['nullable', 'date'],
+            'unpublished_at' => ['nullable', 'date'],
+            'scheduled_at' => ['nullable', 'date', 'after:now'],
+            'created_by' => ['nullable', 'integer', 'exists:users,id'],
+            'updated_by' => ['nullable', 'integer', 'exists:users,id'],
+            'published_by' => ['nullable', 'integer', 'exists:users,id'],
+        ];
+    }
+
+    /**
+     * Get validation rules for story creation.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function createRules(): array
+    {
+        return array_merge(self::rules(), [
+            'space_id' => ['required', 'integer', 'exists:spaces,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'content' => ['required', 'array'],
+            'language' => ['required', 'string', 'max:10'],
+            'status' => ['required', 'string', 'in:' . self::STATUS_DRAFT . ',' . self::STATUS_REVIEW . ',' . self::STATUS_PUBLISHED . ',' . self::STATUS_SCHEDULED . ',' . self::STATUS_ARCHIVED],
+        ]);
+    }
+
+    /**
+     * Get validation rules for story update.
+     *
+     * @param int|null $storyId
+     * @return array<string, array<int, string>|string>
+     */
+    public static function updateRules(?int $storyId = null): array
+    {
+        $rules = self::rules();
+        
+        // Parent cannot be self
+        if ($storyId) {
+            $rules['parent_id'] = ['nullable', 'integer', 'exists:stories,id', "not_in:{$storyId}"];
+            $rules['translated_story_id'] = ['nullable', 'integer', 'exists:stories,id', "not_in:{$storyId}"];
+        }
+        
+        return $rules;
+    }
+
+    /**
+     * Get validation rules for story publishing.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function publishingRules(): array
+    {
+        return [
+            'status' => ['required', 'string', 'in:' . self::STATUS_PUBLISHED . ',' . self::STATUS_SCHEDULED],
+            'published_at' => ['nullable', 'date'],
+            'scheduled_at' => ['nullable', 'date', 'after:now'],
+            'published_by' => ['nullable', 'integer', 'exists:users,id'],
+        ];
+    }
+
+    /**
+     * Get validation rules for content update.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function contentUpdateRules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'content' => ['required', 'array'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:500'],
+            'robots_meta' => ['nullable', 'array'],
+        ];
+    }
+
+    /**
+     * Get validation rules for translation creation.
+     *
+     * @return array<string, array<int, string>|string>
+     */
+    public static function translationRules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9-]+$/'],
+            'content' => ['required', 'array'],
+            'language' => ['required', 'string', 'max:10'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:500'],
+            'meta_data' => ['nullable', 'array'],
+        ];
+    }
+
+    /**
+     * Get validation rules for story moving (changing parent).
+     *
+     * @param int|null $storyId
+     * @return array<string, array<int, string>|string>
+     */
+    public static function moveRules(?int $storyId = null): array
+    {
+        $rules = [
+            'parent_id' => ['nullable', 'integer', 'exists:stories,id'],
+            'sort_order' => ['integer', 'min:0'],
+        ];
+        
+        // Parent cannot be self or descendant
+        if ($storyId) {
+            $rules['parent_id'][] = "not_in:{$storyId}";
+        }
+        
+        return $rules;
     }
 
     /**

@@ -4,6 +4,14 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\Asset;
+use App\Models\Component;
+use App\Models\Datasource;
+use App\Models\Story;
+use App\Observers\AssetObserver;
+use App\Observers\ComponentObserver;
+use App\Observers\DatasourceObserver;
+use App\Observers\StoryObserver;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -25,6 +33,10 @@ final class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register model observers
+        Story::observe(StoryObserver::class);
+        Component::observe(ComponentObserver::class);
+        Asset::observe(AssetObserver::class);
+        Datasource::observe(DatasourceObserver::class);
     }
 }
