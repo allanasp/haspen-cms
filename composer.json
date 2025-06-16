@@ -63,6 +63,30 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "test:pest": [
+            "./vendor/bin/pest"
+        ],
+        "test:pest-parallel": [
+            "./vendor/bin/pest --parallel"
+        ],
+        "test:all": [
+            "@test",
+            "@test:pest"
+        ],
+        "analyse": [
+            "./vendor/bin/phpstan analyse"
+        ],
+        "psalm": [
+            "./vendor/bin/psalm"
+        ],
+        "format": [
+            "./vendor/bin/pint"
+        ],
+        "quality": [
+            "@analyse",
+            "@psalm",
+            "@format"
         ]
     },
     "extra": {

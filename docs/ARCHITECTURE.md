@@ -24,10 +24,11 @@ The headless CMS is built on Laravel 11.x with a focus on:
 - **Translation Workflow**: Smart translation sync with completion tracking
 - **Advanced Search**: Full-text search with component filtering and analytics
 - **Modern PHP**: PHP 8.3+ with strict typing and advanced features
-- **Performance**: Redis caching, PostgreSQL with JSONB, and optimized queries
+- **PostgreSQL First**: PostgreSQL 16+ as the primary database with JSONB, GIN indexes, and full-text search
+- **Performance**: Redis caching, optimized queries, and intelligent caching layers
 - **Testing**: PHPUnit and Pest frameworks with comprehensive test coverage
 - **Code Quality**: PHPStan Level 8 static analysis and Psalm integration
-- **Developer Experience**: Comprehensive traits, OpenAPI documentation, and type safety
+- **Developer Experience**: Comprehensive traits, comprehensive API documentation, and type safety
 
 ### High-Level Architecture
 
@@ -216,31 +217,63 @@ datasource_entries (
 )
 ```
 
-### JSONB Usage and Indexing
+### PostgreSQL 16+ Features
 
-The system extensively uses PostgreSQL's JSONB columns with GIN indexes for optimal performance:
+The system leverages advanced PostgreSQL 16+ features for optimal performance:
+
+#### JSONB with GIN Indexes
 
 ```sql
--- Component schemas with field definitions
+-- Component schemas with field definitions and validation
 CREATE INDEX idx_components_schema_gin ON components USING gin(schema);
 
--- Story content with component data
+-- Story content with advanced component searching
 CREATE INDEX idx_stories_content_gin ON stories USING gin(content);
 
--- Space settings and configurations
+-- Space settings and environment configurations
 CREATE INDEX idx_spaces_settings_gin ON spaces USING gin(settings);
+CREATE INDEX idx_spaces_environments_gin ON spaces USING gin(environments);
 
 -- User preferences and metadata
 CREATE INDEX idx_users_preferences_gin ON users USING gin(preferences);
+CREATE INDEX idx_users_metadata_gin ON users USING gin(metadata);
 
--- Asset metadata and variants
+-- Asset metadata and processing variants
 CREATE INDEX idx_assets_metadata_gin ON assets USING gin(metadata);
 
--- Datasource configurations
+-- Datasource configurations and schema definitions
 CREATE INDEX idx_datasources_config_gin ON datasources USING gin(config);
+CREATE INDEX idx_datasources_schema_gin ON datasources USING gin(schema);
 
--- Entry dimensions for filtering
+-- Entry dimensions for multi-dimensional filtering
 CREATE INDEX idx_entries_dimensions_gin ON datasource_entries USING gin(dimensions);
+CREATE INDEX idx_entries_data_gin ON datasource_entries USING gin(data);
+```
+
+#### Full-Text Search
+
+```sql
+-- Story content full-text search
+CREATE INDEX idx_stories_content_fts ON stories USING gin(to_tsvector('english', name || ' ' || COALESCE(meta_title, '') || ' ' || COALESCE(meta_description, '')));
+
+-- Component name and description search
+CREATE INDEX idx_components_fts ON components USING gin(to_tsvector('english', name || ' ' || COALESCE(description, '')));
+
+-- Asset search by title and alt text
+CREATE INDEX idx_assets_fts ON assets USING gin(to_tsvector('english', COALESCE(title, '') || ' ' || COALESCE(alt, '')));
+```
+
+#### Partial and Conditional Indexes
+
+```sql
+-- Only index published stories for performance
+CREATE INDEX idx_stories_published ON stories (space_id, published_at) WHERE status = 'published';
+
+-- Index locked stories for content management
+CREATE INDEX idx_stories_locked ON stories (locked_by, lock_expires_at) WHERE locked_by IS NOT NULL;
+
+-- Index scheduled stories for publishing
+CREATE INDEX idx_stories_scheduled ON stories (scheduled_at, space_id) WHERE status = 'scheduled';
 ```
 
 ### Row Level Security (RLS) Ready

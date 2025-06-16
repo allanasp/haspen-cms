@@ -30,8 +30,9 @@ The API is organized into three distinct tiers:
 
 ### Database Configuration
 
-- **Development/Production**: PostgreSQL 16+ (default)
+- **Primary Database**: PostgreSQL 16+ (default for all environments)
 - **Testing**: SQLite in-memory (for speed)
+- **Caching**: Redis 7+ for sessions, queue, and application cache
 
 ## Authentication
 
@@ -884,6 +885,286 @@ curl -X POST \
   -F "alt=Beautiful hero image" \
   -F "folder=images/heroes" \
   "http://localhost:8000/api/v1/spaces/{space_id}/assets"
+```
+
+### Datasources Management
+
+#### List Datasources
+
+```http
+GET /api/v1/spaces/{space_id}/datasources
+```
+
+#### Create Datasource
+
+```http
+POST /api/v1/spaces/{space_id}/datasources
+```
+
+**Request Body:**
+
+```json
+{
+  "datasource": {
+    "name": "Product Catalog",
+    "slug": "product-catalog",
+    "type": "json",
+    "config": {
+      "api_url": "https://api.example.com/products",
+      "auth_type": "bearer",
+      "auth_token": "your-api-token"
+    },
+    "schema": {
+      "id": {"type": "string", "required": true},
+      "name": {"type": "string", "required": true},
+      "price": {"type": "number", "required": true}
+    }
+  }
+}
+```
+
+#### Get Datasource
+
+```http
+GET /api/v1/spaces/{space_id}/datasources/{datasource_id}
+```
+
+#### Update Datasource
+
+```http
+PUT /api/v1/spaces/{space_id}/datasources/{datasource_id}
+```
+
+#### Delete Datasource
+
+```http
+DELETE /api/v1/spaces/{space_id}/datasources/{datasource_id}
+```
+
+#### Sync Datasource
+
+```http
+POST /api/v1/spaces/{space_id}/datasources/{datasource_id}/sync
+```
+
+#### Test Datasource Connection
+
+```http
+POST /api/v1/spaces/{space_id}/datasources/{datasource_id}/test
+```
+
+#### Get Datasource Entries
+
+```http
+GET /api/v1/spaces/{space_id}/datasources/{datasource_id}/entries
+```
+
+#### Health Check Datasource
+
+```http
+POST /api/v1/spaces/{space_id}/datasources/{datasource_id}/health-check
+```
+
+### Users Management
+
+#### List Space Users
+
+```http
+GET /api/v1/spaces/{space_id}/users
+```
+
+#### Invite User to Space
+
+```http
+POST /api/v1/spaces/{space_id}/users
+```
+
+**Request Body:**
+
+```json
+{
+  "user": {
+    "email": "user@example.com",
+    "name": "John Doe",
+    "role_id": 2,
+    "send_invitation": true
+  }
+}
+```
+
+#### Get User Details
+
+```http
+GET /api/v1/spaces/{space_id}/users/{user_id}
+```
+
+#### Update User in Space
+
+```http
+PUT /api/v1/spaces/{space_id}/users/{user_id}
+```
+
+#### Remove User from Space
+
+```http
+DELETE /api/v1/spaces/{space_id}/users/{user_id}
+```
+
+#### Assign Role to User
+
+```http
+POST /api/v1/spaces/{space_id}/users/{user_id}/assign-role
+```
+
+**Request Body:**
+
+```json
+{
+  "role_id": 3,
+  "custom_permissions": {
+    "publish_stories": true,
+    "manage_assets": false
+  }
+}
+```
+
+#### Remove Role from User
+
+```http
+DELETE /api/v1/spaces/{space_id}/users/{user_id}/remove-role
+```
+
+#### Get User Permissions
+
+```http
+GET /api/v1/spaces/{space_id}/users/{user_id}/permissions
+```
+
+#### Send User Invitation
+
+```http
+POST /api/v1/spaces/{space_id}/users/{user_id}/invite
+```
+
+### Roles Management
+
+#### List Roles
+
+```http
+GET /api/v1/spaces/{space_id}/roles
+```
+
+#### Create Role
+
+```http
+POST /api/v1/spaces/{space_id}/roles
+```
+
+**Request Body:**
+
+```json
+{
+  "role": {
+    "name": "Content Editor",
+    "slug": "content-editor",
+    "description": "Can create and edit content but not publish",
+    "permissions": [
+      "stories.create",
+      "stories.read",
+      "stories.update",
+      "assets.create",
+      "assets.read",
+      "assets.update"
+    ],
+    "is_system_role": false,
+    "priority": 3
+  }
+}
+```
+
+#### Get Role
+
+```http
+GET /api/v1/spaces/{space_id}/roles/{role_id}
+```
+
+#### Update Role
+
+```http
+PUT /api/v1/spaces/{space_id}/roles/{role_id}
+```
+
+#### Delete Role
+
+```http
+DELETE /api/v1/spaces/{space_id}/roles/{role_id}
+```
+
+### Space Settings
+
+#### Get Space Settings
+
+```http
+GET /api/v1/spaces/{space_id}/settings
+```
+
+#### Update Space Settings
+
+```http
+PUT /api/v1/spaces/{space_id}/settings
+```
+
+**Request Body:**
+
+```json
+{
+  "settings": {
+    "general": {
+      "name": "My Website",
+      "description": "A modern website built with headless CMS",
+      "timezone": "America/New_York",
+      "default_language": "en",
+      "languages": ["en", "es", "fr"]
+    },
+    "seo": {
+      "default_meta_title": "My Website - Digital Solutions",
+      "default_meta_description": "We provide innovative digital solutions",
+      "robots_default": "index,follow"
+    },
+    "api": {
+      "rate_limit": 1000,
+      "cache_ttl": 3600
+    }
+  }
+}
+```
+
+#### Get API Keys
+
+```http
+GET /api/v1/spaces/{space_id}/settings/api-keys
+```
+
+#### Create API Key
+
+```http
+POST /api/v1/spaces/{space_id}/settings/api-keys
+```
+
+**Request Body:**
+
+```json
+{
+  "name": "Frontend Application",
+  "permissions": ["cdn.read"],
+  "expires_at": "2025-12-31T23:59:59Z"
+}
+```
+
+#### Delete API Key
+
+```http
+DELETE /api/v1/spaces/{space_id}/settings/api-keys/{key_id}
 ```
 
 ## Authentication API

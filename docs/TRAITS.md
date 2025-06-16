@@ -702,11 +702,45 @@ class Story extends Model
     protected int $cacheTtl = 3600;
     
     // Traits work together seamlessly
-    // - UUID for API exposure
-    // - MultiTenant for data isolation
-    // - Sluggable for URL generation
-    // - Cacheable for performance
-    // - SoftDeletes for data safety
+    // - HasFactory for test data generation
+    // - HasUuid for API exposure and public identification
+    // - MultiTenant for automatic space-based data isolation
+    // - Sluggable for URL-friendly slug generation
+    // - Cacheable for intelligent performance optimization
+    // - SoftDeletes for data safety and recovery
+}
+
+class User extends Model
+{
+    use HasFactory, HasApiTokens, HasUuid, Cacheable, SoftDeletes, Notifiable;
+    
+    protected int $cacheTtl = 3600;
+    
+    // User-specific trait combination
+    // - HasApiTokens for Sanctum authentication
+    // - HasUuid for secure public identification
+    // - Cacheable for user data and permissions caching
+    // - Notifiable for email and push notifications
+}
+
+class Space extends Model
+{
+    use HasFactory, HasUuid, Cacheable;
+    
+    protected int $cacheTtl = 86400; // 24 hours
+    
+    // Space-specific traits for tenant management
+    // - HasUuid for secure tenant identification
+    // - Cacheable for space settings and configuration caching
+}
+
+class Component extends Model
+{
+    use HasFactory, HasUuid, MultiTenant, Cacheable;
+    
+    protected int $cacheTtl = 7200; // 2 hours
+    
+    // Component management with validation caching
 }
 ```
 

@@ -30,7 +30,7 @@ A robust JSON casting implementation that provides safe encoding/decoding of JSO
 ```php
 class User extends Model
 {
-    protected $casts = [
+    protected array $casts = [
         'preferences' => Json::class,
         'metadata' => Json::class,
     ];
@@ -38,10 +38,59 @@ class User extends Model
 
 class Space extends Model
 {
-    protected $casts = [
+    protected array $casts = [
         'settings' => Json::class,
         'environments' => Json::class,
         'languages' => Json::class,
+    ];
+}
+
+class Story extends Model
+{
+    protected array $casts = [
+        'content' => Json::class,
+        'translated_languages' => Json::class,
+        'breadcrumbs' => Json::class,
+        'meta_data' => Json::class,
+        'robots_meta' => Json::class,
+        'allowed_roles' => Json::class,
+    ];
+}
+
+class Component extends Model
+{
+    protected array $casts = [
+        'schema' => ComponentSchema::class,
+        'preview_field' => Json::class,
+        'tabs' => Json::class,
+    ];
+}
+
+class Asset extends Model
+{
+    protected array $casts = [
+        'metadata' => Json::class,
+        'processing_data' => Json::class,
+        'variants' => Json::class,
+    ];
+}
+
+class Datasource extends Model
+{
+    protected array $casts = [
+        'config' => Json::class,
+        'schema' => Json::class,
+        'auth_config' => Json::class,
+    ];
+}
+
+class DatasourceEntry extends Model
+{
+    protected array $casts = [
+        'value' => Json::class,
+        'data' => Json::class,
+        'dimensions' => Json::class,
+        'computed_fields' => Json::class,
     ];
 }
 ```
@@ -464,9 +513,10 @@ try {
 - Large schemas are validated efficiently using fast array operations
 
 #### Database Storage
-- Schemas are stored as JSONB in PostgreSQL
-- GIN indexes enable fast schema querying
+- Schemas are stored as JSONB in PostgreSQL 16+
+- GIN indexes enable fast schema querying and component searching
 - Compressed storage reduces database size
+- Full-text search capabilities on component schemas
 
 ---
 

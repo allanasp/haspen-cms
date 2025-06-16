@@ -65,7 +65,13 @@ php artisan serve --host=0.0.0.0 --port=8000
 Key environment variables for development:
 
 ```env
-# Database (PostgreSQL is the default)
+# Application
+APP_ENV=local
+APP_DEBUG=true
+APP_KEY=base64:your-32-character-app-key
+APP_URL=http://localhost:8000
+
+# Database (PostgreSQL 16+ is the default)
 DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
 DB_PORT=5432
@@ -73,27 +79,38 @@ DB_DATABASE=headless_cms
 DB_USERNAME=your_username
 DB_PASSWORD=your_password
 
-# Redis
+# Redis for caching, sessions, and queues
 REDIS_HOST=127.0.0.1
 REDIS_PASSWORD=null
 REDIS_PORT=6379
+REDIS_CLIENT=predis
+
+# Cache configuration
+CACHE_DRIVER=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=redis
 
 # JWT Configuration
 JWT_SECRET=your-jwt-secret-key
 JWT_TTL=60  # Token lifetime in minutes
+JWT_REFRESH_TTL=20160  # Refresh token lifetime (2 weeks)
 
-# API Configuration
+# API Rate Limiting Configuration
 API_RATE_LIMIT_CDN=60
 API_RATE_LIMIT_MANAGEMENT=120
 API_RATE_LIMIT_AUTH=10
 
-# Development
-APP_DEBUG=true
+# Development and Debugging
 LOG_LEVEL=debug
 LOG_CHANNEL=stack
+TELESCOPE_ENABLED=true  # Enable Telescope for debugging
 
-# Asset Storage
+# Asset Storage (local for development)
 FILESYSTEM_DISK=local
+
+# Testing Configuration
+TESTING_DB_CONNECTION=sqlite
+TESTING_DB_DATABASE=:memory:
 ```
 
 ## Code Quality
@@ -242,10 +259,12 @@ php artisan migrate:fresh --database=testing --seed
 
 ### Testing Frameworks
 
-The project supports both PHPUnit and Pest testing frameworks:
+The project supports both PHPUnit and Pest testing frameworks for comprehensive test coverage:
 
 - **PHPUnit**: Traditional Laravel testing with class-based tests
 - **Pest**: Modern PHP testing framework with expressive syntax
+- **Parallel Testing**: Paratest for running tests in parallel
+- **Database Testing**: SQLite in-memory for fast test execution
 
 #### Pest Test Example
 

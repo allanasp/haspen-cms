@@ -35,21 +35,23 @@ Production deployment instructions for the Headless CMS, covering infrastructure
 
 ```bash
 # Application Stack
-- PHP 8.3+
-- Laravel 11.x
-- PostgreSQL 16+ (default database)
-- Redis 7+
-- Nginx 1.20+
+- PHP 8.3+ with strict typing and advanced features
+- Laravel 11.x with latest features
+- PostgreSQL 16+ (primary database with JSONB, GIN indexes, full-text search)
+- Redis 7+ (caching, sessions, queues)
+- Nginx 1.20+ (reverse proxy and static file serving)
 
 # Testing & Quality
-- PHPUnit & Pest testing frameworks
-- PHPStan Level 8 static analysis
-- Psalm for additional type checking
+- PHPUnit & Pest testing frameworks for comprehensive testing
+- PHPStan Level 8 static analysis for type safety
+- Psalm for additional type checking and code quality
+- Automated testing pipeline with parallel execution
 
 # Infrastructure
-- Docker (optional)
-- Kubernetes (optional, for large scale)
+- Docker and Docker Compose for development and deployment
+- Kubernetes (optional, for large scale deployments)
 - CI/CD pipeline (GitHub Actions, GitLab CI, etc.)
+- Monitoring and logging infrastructure
 ```
 
 ## Environment Setup
@@ -173,21 +175,26 @@ server {
 
 ## Database Configuration
 
-### PostgreSQL Setup
+### PostgreSQL 16+ Setup
+
+PostgreSQL 16+ is the recommended and default database for all environments.
 
 ```sql
 -- Create database and user
-CREATE DATABASE headless_cms_prod;
+CREATE DATABASE headless_cms_prod WITH ENCODING 'UTF8' LC_COLLATE 'en_US.UTF-8' LC_CTYPE 'en_US.UTF-8';
 CREATE USER headless_cms_user WITH PASSWORD 'your-secure-password';
 
 -- Grant privileges
 GRANT ALL PRIVILEGES ON DATABASE headless_cms_prod TO headless_cms_user;
 GRANT ALL ON SCHEMA public TO headless_cms_user;
 
--- Enable required extensions
+-- Enable required extensions for advanced features
 \c headless_cms_prod;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";      -- UUID generation
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";        -- Trigram matching for fuzzy search
+CREATE EXTENSION IF NOT EXISTS "btree_gin";      -- GIN indexes for JSONB
+CREATE EXTENSION IF NOT EXISTS "btree_gist";     -- Additional indexing capabilities
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements"; -- Query performance monitoring (optional)
 ```
 
 ### Database Optimization

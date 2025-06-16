@@ -41,9 +41,10 @@ A modern, API-first headless CMS built with Laravel 11.x, designed for scalabili
    ```
 
 3. **Access the application**
-   - API: http://localhost:8000
+   - API: http://localhost (via Nginx)
    - MailHog: http://localhost:8025
-   - API Health: http://localhost:8000/api/health
+   - Database: localhost:5432 (PostgreSQL)
+   - Redis: localhost:6379
 
 ### Option 2: Local Development
 
@@ -79,11 +80,8 @@ A modern, API-first headless CMS built with Laravel 11.x, designed for scalabili
 Test the API with a simple request:
 
 ```bash
-# Check API health
-curl http://localhost:8000/api/health
-
 # Register a user
-curl -X POST http://localhost:8000/api/v1/auth/register \
+curl -X POST http://localhost/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -91,18 +89,31 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
     "password": "password123",
     "password_confirmation": "password123"
   }'
+
+# Login to get a token
+curl -X POST http://localhost/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "password123"
+  }'
+
+# Access CDN content (no auth required)
+curl http://localhost/api/v1/cdn/stories
 ```
 
 ## Development Commands
 
 ```bash
-# Run tests
-composer test
+# Run tests (both PHPUnit and Pest)
+composer test                 # PHPUnit tests
+./vendor/bin/pest            # Pest tests
+./vendor/bin/pest --parallel # Parallel Pest tests
 
 # Code quality
-composer analyse    # PHPStan analysis
-composer psalm      # Psalm static analysis  
-composer format     # PHP CS Fixer formatting
+./vendor/bin/phpstan analyse # PHPStan Level 8 analysis
+./vendor/bin/psalm          # Psalm static analysis  
+./vendor/bin/pint          # Laravel Pint formatting
 
 # Database operations
 php artisan migrate:fresh --seed  # Reset with sample data
@@ -148,13 +159,18 @@ The CMS provides three main API endpoints:
 GET /api/v1/cdn/stories           # List published stories
 GET /api/v1/cdn/stories/{slug}    # Get story by slug
 GET /api/v1/cdn/assets/{filename} # Asset delivery with transformations
+GET /api/v1/cdn/datasources/{slug}/entries # Get datasource entries
 ```
 
 ### Management API (Authenticated)
 ```bash
-GET /api/v1/spaces/{id}/stories   # Manage stories
-GET /api/v1/spaces/{id}/components # Manage components
-GET /api/v1/spaces/{id}/assets    # Manage assets
+GET /api/v1/spaces/{id}/stories     # Manage stories
+GET /api/v1/spaces/{id}/components  # Manage components
+GET /api/v1/spaces/{id}/assets      # Manage assets
+GET /api/v1/spaces/{id}/datasources # Manage datasources
+GET /api/v1/spaces/{id}/users       # Manage users
+GET /api/v1/spaces/{id}/roles       # Manage roles
+GET /api/v1/spaces/{id}/settings    # Space settings
 ```
 
 ### Authentication API
@@ -175,6 +191,7 @@ composer test
 
 # Run all Pest tests  
 ./vendor/bin/pest
+./vendor/bin/pest --parallel  # Run in parallel for speed
 
 # Run specific test groups
 ./vendor/bin/pest --group=pest-demo
@@ -182,10 +199,12 @@ composer test
 
 # Run with coverage
 ./vendor/bin/phpunit --coverage-html coverage
+./vendor/bin/pest --coverage
 
 # Code quality checks
-composer analyse           # PHPStan Level 8
-./vendor/bin/psalm        # Psalm static analysis
+./vendor/bin/phpstan analyse  # PHPStan Level 8
+./vendor/bin/psalm           # Psalm static analysis
+./vendor/bin/pint            # Laravel Pint code formatting
 ```
 
 ### Test Structure
@@ -197,7 +216,7 @@ composer analyse           # PHPStan Level 8
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests and quality checks (`composer test && ./vendor/bin/pest && composer analyse`)
+3. Run tests and quality checks (`composer test && ./vendor/bin/pest && ./vendor/bin/phpstan analyse`)
 4. Commit your changes (`git commit -m 'Add amazing feature'`)
 5. Push to the branch (`git push origin feature/amazing-feature`)
 6. Open a Pull Request

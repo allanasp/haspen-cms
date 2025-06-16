@@ -510,6 +510,40 @@ if (!$story->isLockedByOther($user)) {
 Story::cleanupAllExpiredLocks();
 ```
 
+**Database Schema for Content Locking:**
+
+The Story model includes these fields for content locking functionality:
+
+```php
+protected array $fillable = [
+    // ... other fields
+    'locked_by',           // User ID who locked the story
+    'locked_at',           // Timestamp when locked
+    'lock_expires_at',     // When the lock expires
+    'lock_session_id',     // Session ID for lock validation
+];
+
+protected array $casts = [
+    // ... other casts
+    'locked_at' => 'datetime',
+    'lock_expires_at' => 'datetime',
+];
+```
+
+**Additional Locking Methods:**
+
+```php
+// Advanced lock checking and management
+$story->isLocked();                    // Check if story is currently locked
+$story->isLockedBy($user);            // Check if locked by specific user
+$story->isLockedByOther($user);       // Check if locked by someone else
+$story->canUnlock($user, $sessionId); // Check if user can unlock
+$story->getLockInfo();                // Get detailed lock information
+
+// Automatic cleanup of expired locks
+$cleanedCount = Story::cleanupAllExpiredLocks();
+```
+
 #### Content Templates
 ```php
 // Create template from existing story

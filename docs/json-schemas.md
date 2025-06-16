@@ -361,8 +361,19 @@ Role-based permissions with granular control:
 
 ```json
 {
-  "name": "Editor",
-  "permissions": {
+  "name": "Content Editor",
+  "slug": "content-editor", 
+  "description": "Can create and edit content but not publish",
+  "permissions": [
+    "stories.create",
+    "stories.read",
+    "stories.update", 
+    "assets.create",
+    "assets.read",
+    "assets.update",
+    "components.read"
+  ],
+  "legacy_permissions": {
     "stories": {
       "create": true,
       "read": true,
@@ -418,4 +429,349 @@ Role-based permissions with granular control:
 }
 ```
 
-These JSON structures provide a comprehensive foundation for building a Storyblok-like headless CMS with rich content management, asset handling, and flexible data source integration.
+## Advanced Story Content with Locking
+
+Story with content locking information:
+
+```json
+{
+  "uuid": "story-12345-abcde",
+  "name": "Product Launch Article",
+  "slug": "product-launch-2024",
+  "status": "draft",
+  "language": "en",
+  "content": {
+    "body": [
+      {
+        "_uid": "component-uuid-1",
+        "component": "hero",
+        "title": "Revolutionary Product Launch",
+        "description": "Introducing our latest innovation"
+      }
+    ]
+  },
+  "translation_info": {
+    "translation_group_id": 123,
+    "translated_languages": ["en", "es", "fr"],
+    "translation_status": {
+      "en": {
+        "completion_percentage": 100,
+        "last_updated": "2024-06-15T10:30:00Z",
+        "needs_sync": false
+      },
+      "es": {
+        "completion_percentage": 75,
+        "last_updated": "2024-06-10T14:20:00Z", 
+        "needs_sync": true
+      }
+    }
+  },
+  "lock_info": {
+    "is_locked": true,
+    "locked_by": "user-uuid-456",
+    "locked_at": "2024-06-15T15:30:00Z",
+    "lock_expires_at": "2024-06-15T16:00:00Z",
+    "session_id": "session-uuid-789",
+    "locker": {
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    "time_remaining": 25
+  },
+  "version_info": {
+    "current_version": 5,
+    "total_versions": 12,
+    "last_version_reason": "Updated hero section with new product images"
+  },
+  "meta_data": {
+    "is_template": false,
+    "template_category": null,
+    "created_from_template": "product-launch-template",
+    "seo": {
+      "meta_title": "Revolutionary Product Launch - Company Name",
+      "meta_description": "Discover our latest innovation that's changing the industry",
+      "canonical_url": "https://example.com/product-launch-2024",
+      "robots": {
+        "index": true,
+        "follow": true,
+        "noarchive": false
+      }
+    }
+  },
+  "created_at": "2024-06-10T09:00:00Z",
+  "updated_at": "2024-06-15T15:30:00Z"
+}
+```
+
+## Component Schema with Advanced Validation
+
+Enhanced component schema with 20+ field types:
+
+```json
+{
+  "name": "Advanced Product Card",
+  "technical_name": "advanced_product_card",
+  "description": "Comprehensive product display component with pricing and variants",
+  "version": 2,
+  "schema": [
+    {
+      "key": "product_name",
+      "type": "text",
+      "display_name": "Product Name",
+      "required": true,
+      "max_length": 100,
+      "min_length": 3,
+      "placeholder": "Enter product name",
+      "description": "The name of the product"
+    },
+    {
+      "key": "description",
+      "type": "richtext",
+      "display_name": "Product Description", 
+      "required": true,
+      "max_length": 2000,
+      "toolbar": ["bold", "italic", "link", "bullet-list"],
+      "description": "Detailed product description with formatting"
+    },
+    {
+      "key": "price",
+      "type": "number",
+      "display_name": "Price",
+      "required": true,
+      "min": 0,
+      "max": 999999.99,
+      "step": 0.01,
+      "prefix": "$",
+      "suffix": " USD",
+      "description": "Product price in USD"
+    },
+    {
+      "key": "featured_image",
+      "type": "asset",
+      "display_name": "Featured Image",
+      "required": true,
+      "allowed_types": ["image/jpeg", "image/png", "image/webp"],
+      "max_file_size": 5242880,
+      "dimensions": {
+        "min_width": 400,
+        "min_height": 300,
+        "max_width": 1920,
+        "max_height": 1080,
+        "aspect_ratio": "16:9"
+      },
+      "description": "Main product image"
+    },
+    {
+      "key": "gallery",
+      "type": "json",
+      "display_name": "Product Gallery",
+      "required": false,
+      "description": "Additional product images",
+      "validation": {
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "image": {"type": "object"},
+              "caption": {"type": "string", "maxLength": 200}
+            }
+          },
+          "maxItems": 10
+        }
+      }
+    },
+    {
+      "key": "category",
+      "type": "select",
+      "display_name": "Product Category",
+      "required": true,
+      "options": [
+        {"label": "Electronics", "value": "electronics"},
+        {"label": "Clothing", "value": "clothing"},
+        {"label": "Home & Garden", "value": "home-garden"},
+        {"label": "Sports & Outdoors", "value": "sports-outdoors"}
+      ],
+      "default_value": "electronics"
+    },
+    {
+      "key": "tags",
+      "type": "multiselect",
+      "display_name": "Product Tags",
+      "required": false,
+      "options": [
+        {"label": "Featured", "value": "featured"},
+        {"label": "On Sale", "value": "on-sale"},
+        {"label": "New Arrival", "value": "new-arrival"},
+        {"label": "Limited Edition", "value": "limited-edition"}
+      ],
+      "max_selections": 5
+    },
+    {
+      "key": "availability",
+      "type": "boolean",
+      "display_name": "In Stock",
+      "required": false,
+      "default_value": true,
+      "description": "Whether the product is currently available"
+    },
+    {
+      "key": "launch_date",
+      "type": "datetime",
+      "display_name": "Launch Date",
+      "required": false,
+      "min_date": "2024-01-01",
+      "max_date": "2025-12-31",
+      "description": "When the product was or will be launched"
+    },
+    {
+      "key": "brand_color",
+      "type": "color",
+      "display_name": "Brand Color",
+      "required": false,
+      "default_value": "#3b82f6",
+      "description": "Primary brand color for this product"
+    },
+    {
+      "key": "specifications",
+      "type": "table",
+      "display_name": "Product Specifications",
+      "required": false,
+      "columns": [
+        {"key": "property", "label": "Property", "type": "text"},
+        {"key": "value", "label": "Value", "type": "text"},
+        {"key": "unit", "label": "Unit", "type": "text"}
+      ],
+      "max_rows": 20,
+      "description": "Technical specifications and features"
+    },
+    {
+      "key": "related_products",
+      "type": "blocks",
+      "display_name": "Related Products",
+      "required": false,
+      "restrict_components": true,
+      "component_whitelist": ["product_reference", "product_bundle"],
+      "maximum": 5,
+      "description": "Related or complementary products"
+    }
+  ],
+  "preview_field": {
+    "template": "{product_name} - ${price}",
+    "fields": ["product_name", "price"]
+  },
+  "tabs": [
+    {
+      "name": "Content",
+      "fields": ["product_name", "description", "featured_image", "gallery"]
+    },
+    {
+      "name": "Details", 
+      "fields": ["price", "category", "tags", "availability", "launch_date"]
+    },
+    {
+      "name": "Design",
+      "fields": ["brand_color", "specifications"]
+    },
+    {
+      "name": "Relations",
+      "fields": ["related_products"]
+    }
+  ],
+  "is_root": false,
+  "is_nestable": true,
+  "icon": "shopping-bag",
+  "color": "#10b981",
+  "created_at": "2024-06-15T10:00:00Z",
+  "updated_at": "2024-06-15T15:30:00Z"
+}
+```
+
+## Datasource Entry with Multi-Dimensional Data
+
+Complex datasource entry with advanced filtering capabilities:
+
+```json
+{
+  "uuid": "entry-12345-abcde",
+  "name": "iPhone 15 Pro Max",
+  "slug": "iphone-15-pro-max",
+  "value": {
+    "id": "iphone-15-pro-max",
+    "name": "iPhone 15 Pro Max",
+    "brand": "Apple",
+    "model": "iPhone 15 Pro Max",
+    "price": {
+      "base": 1199,
+      "currency": "USD",
+      "variations": {
+        "128gb": 1199,
+        "256gb": 1299,
+        "512gb": 1499,
+        "1tb": 1699
+      }
+    },
+    "specifications": {
+      "display": {
+        "size": "6.7 inches",
+        "resolution": "2796 x 1290",
+        "technology": "Super Retina XDR",
+        "refresh_rate": "120Hz"
+      },
+      "camera": {
+        "main": "48MP",
+        "ultra_wide": "12MP", 
+        "telephoto": "12MP",
+        "front": "12MP",
+        "features": ["Night mode", "Portrait mode", "4K video"]
+      },
+      "performance": {
+        "chip": "A17 Pro",
+        "cpu": "6-core",
+        "gpu": "6-core",
+        "neural_engine": "16-core"
+      },
+      "storage_options": ["128GB", "256GB", "512GB", "1TB"],
+      "colors": ["Natural Titanium", "Blue Titanium", "White Titanium", "Black Titanium"]
+    },
+    "availability": {
+      "in_stock": true,
+      "regions": ["US", "EU", "APAC"],
+      "release_date": "2023-09-22",
+      "estimated_shipping": "1-2 business days"
+    }
+  },
+  "dimensions": {
+    "category": "electronics",
+    "subcategory": "smartphones",
+    "brand": "apple",
+    "price_range": "premium",
+    "target_audience": "consumer",
+    "geography": ["US", "EU", "APAC"],
+    "features": ["5g", "wireless_charging", "face_id", "magsafe"]
+  },
+  "computed_fields": {
+    "price_score": 4.2,
+    "feature_score": 4.8,
+    "availability_score": 4.9,
+    "overall_rating": 4.6,
+    "review_count": 15420,
+    "popularity_rank": 3,
+    "search_keywords": [
+      "iphone", "apple", "smartphone", "premium", "pro max", 
+      "titanium", "48mp camera", "a17 pro", "120hz"
+    ]
+  },
+  "metadata": {
+    "last_synced": "2024-06-15T10:30:00Z",
+    "sync_source": "apple_api",
+    "data_quality_score": 0.95,
+    "verification_status": "verified",
+    "content_flags": []
+  },
+  "created_at": "2024-06-10T12:00:00Z",
+  "updated_at": "2024-06-15T10:30:00Z"
+}
+```
+
+These JSON structures provide a comprehensive foundation for building a Storyblok-like headless CMS with rich content management, advanced component validation, content locking, translation workflows, and flexible data source integration.
