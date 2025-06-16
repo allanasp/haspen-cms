@@ -37,9 +37,14 @@ Production deployment instructions for the Headless CMS, covering infrastructure
 # Application Stack
 - PHP 8.3+
 - Laravel 11.x
-- PostgreSQL 16+
+- PostgreSQL 16+ (default database)
 - Redis 7+
 - Nginx 1.20+
+
+# Testing & Quality
+- PHPUnit & Pest testing frameworks
+- PHPStan Level 8 static analysis
+- Psalm for additional type checking
 
 # Infrastructure
 - Docker (optional)

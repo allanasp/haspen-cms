@@ -28,7 +28,22 @@ final class ComponentFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => $this->faker->words(2, true),
+            'technical_name' => $this->faker->slug(2),
+            'description' => $this->faker->sentence(),
+            'schema' => [
+                'title' => [
+                    'type' => 'text',
+                    'required' => true,
+                    'max_length' => 255
+                ]
+            ],
+            'is_root' => $this->faker->boolean(),
+            'is_nestable' => $this->faker->boolean(),
+            'status' => 'active',
+            'version' => 1,
+            'icon' => 'component',
+            'color' => '#3b82f6'
         ];
     }
 }

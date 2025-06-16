@@ -28,6 +28,11 @@ The API is organized into three distinct tiers:
 - **Development**: `http://localhost:8000/api`
 - **Production**: `https://your-domain.com/api`
 
+### Database Configuration
+
+- **Development/Production**: PostgreSQL 16+ (default)
+- **Testing**: SQLite in-memory (for speed)
+
 ## Authentication
 
 ### JWT Tokens

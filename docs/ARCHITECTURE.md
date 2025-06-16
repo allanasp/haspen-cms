@@ -25,6 +25,8 @@ The headless CMS is built on Laravel 11.x with a focus on:
 - **Advanced Search**: Full-text search with component filtering and analytics
 - **Modern PHP**: PHP 8.3+ with strict typing and advanced features
 - **Performance**: Redis caching, PostgreSQL with JSONB, and optimized queries
+- **Testing**: PHPUnit and Pest frameworks with comprehensive test coverage
+- **Code Quality**: PHPStan Level 8 static analysis and Psalm integration
 - **Developer Experience**: Comprehensive traits, OpenAPI documentation, and type safety
 
 ### High-Level Architecture

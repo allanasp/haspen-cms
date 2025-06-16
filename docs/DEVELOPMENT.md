@@ -65,7 +65,7 @@ php artisan serve --host=0.0.0.0 --port=8000
 Key environment variables for development:
 
 ```env
-# Database
+# Database (PostgreSQL is the default)
 DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
 DB_PORT=5432
@@ -195,9 +195,12 @@ tests/
 ### Running Tests
 
 ```bash
-# Run all tests
+# Run all tests (PHPUnit)
 composer test
 ./vendor/bin/phpunit
+
+# Run all tests (Pest)
+./vendor/bin/pest
 
 # Run specific test suite
 ./vendor/bin/phpunit --testsuite=Feature
@@ -206,6 +209,9 @@ composer test
 # Run specific feature tests
 ./vendor/bin/phpunit tests/Feature/Api/Management/StoryLockingTest.php
 ./vendor/bin/phpunit tests/Feature/Api/Management/ContentTemplatesTest.php
+
+# Run Pest tests with specific groups
+./vendor/bin/pest --group=pest-demo
 
 # Run with coverage
 ./vendor/bin/phpunit --coverage-html coverage
@@ -232,6 +238,47 @@ php artisan migrate --database=testing
 
 # Reset test database
 php artisan migrate:fresh --database=testing --seed
+```
+
+### Testing Frameworks
+
+The project supports both PHPUnit and Pest testing frameworks:
+
+- **PHPUnit**: Traditional Laravel testing with class-based tests
+- **Pest**: Modern PHP testing framework with expressive syntax
+
+#### Pest Test Example
+
+```php
+<?php
+
+use App\Models\User;
+use App\Models\Space;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+test('can create user with pest', function () {
+    $user = User::factory()->create([
+        'name' => 'John Doe',
+        'email' => 'john@example.com'
+    ]);
+
+    expect($user->name)->toBe('John Doe');
+    expect($user->email)->toBe('john@example.com');
+    expect($user->id)->toBeInt();
+});
+
+test('can create space with pest', function () {
+    $space = Space::factory()->create([
+        'name' => 'Test Space',
+        'slug' => 'test-space'
+    ]);
+
+    expect($space->name)->toBe('Test Space');
+    expect($space->slug)->toBe('test-space');
+    expect($space->uuid)->toBeString();
+});
 ```
 
 ### Writing Tests

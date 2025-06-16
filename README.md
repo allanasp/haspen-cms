@@ -10,6 +10,8 @@ A modern, API-first headless CMS built with Laravel 11.x, designed for scalabili
 - **📁 Asset Management**: Advanced file handling with image transformations
 - **🔒 Security**: JWT authentication, rate limiting, and comprehensive validation
 - **⚡ Performance**: PostgreSQL 16+ with JSONB, Redis caching, Docker optimization
+- **🧪 Testing**: PHPUnit & Pest frameworks with comprehensive test coverage
+- **🔍 Code Quality**: PHPStan Level 8 static analysis and Psalm integration
 
 ## Requirements
 
@@ -52,7 +54,7 @@ A modern, API-first headless CMS built with Laravel 11.x, designed for scalabili
    php artisan key:generate
    ```
 
-2. **Configure environment**
+2. **Configure environment** (PostgreSQL is the default database)
    ```env
    DB_CONNECTION=pgsql
    DB_HOST=127.0.0.1
@@ -162,11 +164,40 @@ POST /api/v1/auth/register # User registration
 GET  /api/v1/auth/me       # Current user
 ```
 
+## Testing
+
+The project includes comprehensive test coverage with both PHPUnit and Pest frameworks:
+
+```bash
+# Run all PHPUnit tests
+composer test
+./vendor/bin/phpunit
+
+# Run all Pest tests  
+./vendor/bin/pest
+
+# Run specific test groups
+./vendor/bin/pest --group=pest-demo
+./vendor/bin/phpunit --group=story-management
+
+# Run with coverage
+./vendor/bin/phpunit --coverage-html coverage
+
+# Code quality checks
+composer analyse           # PHPStan Level 8
+./vendor/bin/psalm        # Psalm static analysis
+```
+
+### Test Structure
+- **Unit Tests**: Model validation, service logic, component behavior
+- **Feature Tests**: API endpoints, authentication, integration flows
+- **Story Management Tests**: Content locking, templates, advanced search, translations
+
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests and quality checks (`composer test && composer analyse`)
+3. Run tests and quality checks (`composer test && ./vendor/bin/pest && composer analyse`)
 4. Commit your changes (`git commit -m 'Add amazing feature'`)
 5. Push to the branch (`git push origin feature/amazing-feature`)
 6. Open a Pull Request
