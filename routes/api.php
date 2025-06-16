@@ -147,6 +147,64 @@ Route::prefix('v1')->group(function () {
             'update' => 'management.assets.update',
             'destroy' => 'management.assets.destroy'
         ]);
+
+        // Datasources Management
+        Route::apiResource('datasources', \App\Http\Controllers\Api\V1\Management\DatasourceController::class, [
+            'parameters' => ['datasources' => 'datasourceId']
+        ])->names([
+            'index' => 'management.datasources.index',
+            'store' => 'management.datasources.store',
+            'show' => 'management.datasources.show',
+            'update' => 'management.datasources.update',
+            'destroy' => 'management.datasources.destroy'
+        ]);
+
+        // Additional Datasource routes
+        Route::prefix('datasources')->name('management.datasources.')->group(function () {
+            Route::post('{datasourceId}/sync', [\App\Http\Controllers\Api\V1\Management\DatasourceController::class, 'sync'])->name('sync');
+            Route::post('{datasourceId}/test', [\App\Http\Controllers\Api\V1\Management\DatasourceController::class, 'test'])->name('test');
+            Route::get('{datasourceId}/entries', [\App\Http\Controllers\Api\V1\Management\DatasourceController::class, 'entries'])->name('entries');
+            Route::post('{datasourceId}/health-check', [\App\Http\Controllers\Api\V1\Management\DatasourceController::class, 'healthCheck'])->name('health-check');
+        });
+
+        // Users Management
+        Route::apiResource('users', \App\Http\Controllers\Api\V1\Management\UserController::class, [
+            'parameters' => ['users' => 'userId']
+        ])->names([
+            'index' => 'management.users.index',
+            'store' => 'management.users.store',
+            'show' => 'management.users.show',
+            'update' => 'management.users.update',
+            'destroy' => 'management.users.destroy'
+        ]);
+
+        // Additional User routes
+        Route::prefix('users')->name('management.users.')->group(function () {
+            Route::post('{userId}/assign-role', [\App\Http\Controllers\Api\V1\Management\UserController::class, 'assignRole'])->name('assign-role');
+            Route::delete('{userId}/remove-role', [\App\Http\Controllers\Api\V1\Management\UserController::class, 'removeRole'])->name('remove-role');
+            Route::get('{userId}/permissions', [\App\Http\Controllers\Api\V1\Management\UserController::class, 'permissions'])->name('permissions');
+            Route::post('{userId}/invite', [\App\Http\Controllers\Api\V1\Management\UserController::class, 'invite'])->name('invite');
+        });
+
+        // Roles Management
+        Route::apiResource('roles', \App\Http\Controllers\Api\V1\Management\RoleController::class, [
+            'parameters' => ['roles' => 'roleId']
+        ])->names([
+            'index' => 'management.roles.index',
+            'store' => 'management.roles.store',
+            'show' => 'management.roles.show',
+            'update' => 'management.roles.update',
+            'destroy' => 'management.roles.destroy'
+        ]);
+
+        // Space Settings
+        Route::prefix('settings')->name('management.settings.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\V1\Management\SettingsController::class, 'index'])->name('index');
+            Route::put('/', [\App\Http\Controllers\Api\V1\Management\SettingsController::class, 'update'])->name('update');
+            Route::get('api-keys', [\App\Http\Controllers\Api\V1\Management\SettingsController::class, 'apiKeys'])->name('api-keys');
+            Route::post('api-keys', [\App\Http\Controllers\Api\V1\Management\SettingsController::class, 'createApiKey'])->name('create-api-key');
+            Route::delete('api-keys/{keyId}', [\App\Http\Controllers\Api\V1\Management\SettingsController::class, 'deleteApiKey'])->name('delete-api-key');
+        });
     });
 });
 

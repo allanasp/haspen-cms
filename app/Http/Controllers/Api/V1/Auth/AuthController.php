@@ -83,8 +83,8 @@ class AuthController extends Controller
         ]);
 
         // Generate JWT token
-        $token = $this->jwtService->generateToken($user);
-        $expiresAt = $this->jwtService->getTokenExpiration($token);
+        $tokenData = $this->jwtService->createTokenPair($user->id);
+        $token = $tokenData['access_token'];
 
         return response()->json([
             'user' => [
@@ -93,8 +93,10 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'created_at' => $user->created_at->toISOString()
             ],
-            'token' => $token,
-            'expires_at' => $expiresAt->toISOString()
+            'access_token' => $token,
+            'refresh_token' => $tokenData['refresh_token'],
+            'token_type' => 'Bearer',
+            'expires_in' => $tokenData['expires_in']
         ], 201);
     }
 
@@ -178,8 +180,8 @@ class AuthController extends Controller
         }
 
         // Generate JWT token
-        $token = $this->jwtService->generateToken($user, $remember);
-        $expiresAt = $this->jwtService->getTokenExpiration($token);
+        $tokenData = $this->jwtService->createTokenPair($user->id);
+        $token = $tokenData['access_token'];
 
         // Load user spaces with roles
         $userSpaces = $user->spaces()->with('pivot.role')->get()->map(function ($space) {
@@ -198,8 +200,10 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'spaces' => $userSpaces
             ],
-            'token' => $token,
-            'expires_at' => $expiresAt->toISOString()
+            'access_token' => $token,
+            'refresh_token' => $tokenData['refresh_token'],
+            'token_type' => 'Bearer',
+            'expires_in' => $tokenData['expires_in']
         ]);
     }
 
@@ -239,12 +243,13 @@ class AuthController extends Controller
         }
 
         // Generate new JWT token
-        $token = $this->jwtService->generateToken($user);
-        $expiresAt = $this->jwtService->getTokenExpiration($token);
+        $tokenData = $this->jwtService->createTokenPair($user->id);
 
         return response()->json([
-            'token' => $token,
-            'expires_at' => $expiresAt->toISOString()
+            'access_token' => $tokenData['access_token'],
+            'refresh_token' => $tokenData['refresh_token'],
+            'token_type' => 'Bearer',
+            'expires_in' => $tokenData['expires_in']
         ]);
     }
 

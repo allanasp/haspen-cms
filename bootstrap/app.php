@@ -18,6 +18,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.auth' => \App\Http\Middleware\ApiAuthentication::class,
             'api.rate_limit' => \App\Http\Middleware\ApiRateLimit::class,
             'api.logging' => \App\Http\Middleware\ApiLogging::class,
+            'cors' => \App\Http\Middleware\CorsMiddleware::class,
+        ]);
+
+        // Add CORS middleware globally for API routes
+        $middleware->group('api', [
+            \App\Http\Middleware\CorsMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

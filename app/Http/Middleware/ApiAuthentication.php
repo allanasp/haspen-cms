@@ -29,15 +29,25 @@ class ApiAuthentication
      */
     public function handle(Request $request, Closure $next, ?string $guard = null): BaseResponse
     {
-        $token = $this->extractToken($request);
+        $tokenString = $this->extractToken($request);
 
-        if (!$token) {
+        if (!$tokenString) {
             return $this->unauthorizedResponse('Authentication token required');
         }
 
         try {
-            $payload = $this->jwtService->validateToken($token);
-            $user = $this->resolveUser($payload);
+            $token = $this->jwtService->parseToken($tokenString);
+            
+            if (!$this->jwtService->validateToken($token)) {
+                return $this->unauthorizedResponse('Invalid token');
+            }
+
+            if ($this->jwtService->isExpired($token)) {
+                return $this->unauthorizedResponse('Token expired');
+            }
+
+            $userId = $this->jwtService->getUserId($token);
+            $user = $this->resolveUser($userId);
 
             if (!$user) {
                 return $this->unauthorizedResponse('Invalid user');
@@ -48,12 +58,14 @@ class ApiAuthentication
                 return $this->forbiddenResponse('Access denied to this space');
             }
 
-            // Set authenticated user
+            // Set authenticated user and JWT claims
             $request->setUserResolver(fn() => $user);
+            $request->attributes->set('jwt_token', $token);
+            $request->attributes->set('jwt_claims', $token->claims()->all());
             auth()->setUser($user);
 
         } catch (\Exception $e) {
-            return $this->unauthorizedResponse('Invalid or expired token');
+            return $this->unauthorizedResponse('Invalid or expired token: ' . $e->getMessage());
         }
 
         return $next($request);
@@ -74,12 +86,10 @@ class ApiAuthentication
     }
 
     /**
-     * Resolve user from JWT payload.
+     * Resolve user from JWT user ID.
      */
-    private function resolveUser(array $payload): ?\App\Models\User
+    private function resolveUser(string $userId): ?\App\Models\User
     {
-        $userId = $payload['sub'] ?? null;
-        
         if (!$userId) {
             return null;
         }
